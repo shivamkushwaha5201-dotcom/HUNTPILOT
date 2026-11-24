@@ -1,4 +1,5 @@
-import { Content, FunctionDeclaration, GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
+import type { Content, FunctionDeclaration } from '@google/genai';
 import { callMcpToolForUser } from './mcp.ts';
 import { getUserOAuthSession } from './mcpOAuth.ts';
 

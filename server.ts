@@ -11,8 +11,8 @@ import {
   askAssistantWithAI,
   explainAcademyLessonWithAI,
   synthesizeCompetitorResearchWithAI,
-  AnalyzeMcpContext,
 } from './server/ai.ts';
+import type { AnalyzeMcpContext } from './server/ai.ts';
 import {
   callMcpToolForUser,
   discoverMcpTools,

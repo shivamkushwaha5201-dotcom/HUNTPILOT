@@ -6,11 +6,11 @@ import {
   getUserOAuthSession,
   getValidUserAccessToken,
   markUserOAuthSuccess,
-  ProductHuntAccountInfo,
   refreshUserOAuthToken,
   setUserOAuthAccount,
   setUserOAuthError,
 } from './mcpOAuth.ts';
+import type { ProductHuntAccountInfo } from './mcpOAuth.ts';
 
 export interface McpToolDefinition {
   name: string;
