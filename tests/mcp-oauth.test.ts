@@ -38,56 +38,29 @@ test('SSRF guards block private hosts and enforce https', () => {
   assert.equal(getOfficialMcpEndpoint(), OFFICIAL_PRODUCT_HUNT_MCP_URL);
 });
 
-test('OAuth persistence reports memory_only without secret and encrypts at rest with secret', async () => {
-  const prevSecret = process.env.OAUTH_STORAGE_SECRET;
-  const encPath = path.resolve(process.cwd(), '.data', 'ph-oauth-sessions.enc.json');
-  const hadExisting = fs.existsSync(encPath);
-  const backup = hadExisting ? fs.readFileSync(encPath, 'utf-8') : null;
+test('OAuth persistence reports firestore_encrypted by default with managed keys and encrypts at rest', async () => {
+  reloadOAuthStoreForTest();
+  const defaultStatus = getOAuthPersistenceStatus();
+  assert.equal(defaultStatus.mode, 'firestore_encrypted');
+  assert.equal(defaultStatus.persistent, true);
 
-  try {
-    delete process.env.OAUTH_STORAGE_SECRET;
-    reloadOAuthStoreForTest();
-    assert.equal(getOAuthPersistenceStatus().mode, 'memory_only');
+  const started = await startProductHuntOAuth('test_uid_1', 'https://huntpilot.example.com');
+  assert.ok(started.authUrl.includes('code_challenge_method=S256'));
+  assert.ok(started.authUrl.includes('state='));
+  assert.equal(started.redirectUri, 'https://huntpilot.example.com/api/mcp/oauth/callback');
 
-    process.env.OAUTH_STORAGE_SECRET = 'test_secret_key_for_huntpilot_aes_gcm';
-    reloadOAuthStoreForTest();
-    const status = getOAuthPersistenceStatus();
-    assert.equal(status.mode, 'encrypted_file');
-    assert.equal(status.persistent, true);
+  // Reload store and verify missing/invalid state is rejected cleanly
+  reloadOAuthStoreForTest();
+  const badCb = await completeProductHuntOAuthCallback({
+    code: 'abc',
+    state: 'nonexistent-state',
+  });
+  assert.equal(badCb.ok, false);
+  assert.match(badCb.error || '', /missing or expired/i);
 
-    const started = await startProductHuntOAuth('test_uid_1', 'https://huntpilot.example.com');
-    assert.ok(started.authUrl.includes('code_challenge_method=S256'));
-    assert.ok(started.authUrl.includes('state='));
-    assert.equal(started.redirectUri, 'https://huntpilot.example.com/api/mcp/oauth/callback');
-    assert.ok(fs.existsSync(encPath), 'Encrypted OAuth state file should exist on disk');
-
-    const rawDisk = fs.readFileSync(encPath, 'utf-8');
-    assert.equal(rawDisk.includes('test_uid_1'), false, 'UID/state must not be plaintext on disk');
-
-    // Reload store from disk and verify missing/invalid state is rejected cleanly
-    reloadOAuthStoreForTest();
-    const badCb = await completeProductHuntOAuthCallback({
-      code: 'abc',
-      state: 'nonexistent-state',
-    });
-    assert.equal(badCb.ok, false);
-    assert.match(badCb.error || '', /missing or expired/i);
-
-    await disconnectUserOAuth('test_uid_1');
-    assert.equal(getUserOAuthSession('test_uid_1'), null);
-  } finally {
-    if (prevSecret === undefined) {
-      delete process.env.OAUTH_STORAGE_SECRET;
-    } else {
-      process.env.OAUTH_STORAGE_SECRET = prevSecret;
-    }
-    if (hadExisting && backup !== null) {
-      fs.writeFileSync(encPath, backup, 'utf-8');
-    } else if (fs.existsSync(encPath)) {
-      fs.unlinkSync(encPath);
-    }
-    reloadOAuthStoreForTest();
-  }
+  await disconnectUserOAuth('test_uid_1');
+  assert.equal(getUserOAuthSession('test_uid_1'), null);
+  reloadOAuthStoreForTest();
 });
 
 test('parseMcpToolResponse translates unauthorized status into McpAuthError', () => {
