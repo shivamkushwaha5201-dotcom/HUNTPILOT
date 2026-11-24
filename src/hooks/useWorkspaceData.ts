@@ -70,7 +70,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId || !emailVerified) {
+    if (!db || !userId || !emailVerified) {
       setProjects([]);
       setDrafts([]);
       setReports([]);
@@ -85,6 +85,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       return;
     }
 
+    const firestore = db;
     setDataLoading(true);
     let settledCount = 0;
     const markSettled = () => {
@@ -95,7 +96,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     };
 
     const unsubProjects = onSnapshot(
-      query(collection(db, 'projects'), where('ownerId', '==', userId)),
+      query(collection(firestore, 'projects'), where('ownerId', '==', userId)),
       (snap) => {
         setProjects(sortByCreatedDesc(snap.docs.map((d) => d.data() as Project)));
         markSettled();
@@ -104,7 +105,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     );
 
     const unsubDrafts = onSnapshot(
-      query(collection(db, 'launchDrafts'), where('ownerId', '==', userId)),
+      query(collection(firestore, 'launchDrafts'), where('ownerId', '==', userId)),
       (snap) => {
         setDrafts(sortByCreatedDesc(snap.docs.map((d) => d.data() as LaunchDraft)));
         markSettled();
@@ -113,7 +114,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     );
 
     const unsubReports = onSnapshot(
-      query(collection(db, 'analysisReports'), where('ownerId', '==', userId)),
+      query(collection(firestore, 'analysisReports'), where('ownerId', '==', userId)),
       (snap) => {
         setReports(sortByCreatedDesc(snap.docs.map((d) => d.data() as AnalysisReport)));
         markSettled();
@@ -122,7 +123,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     );
 
     const unsubAcademy = onSnapshot(
-      doc(db, 'academyProgress', userId),
+      doc(firestore, 'academyProgress', userId),
       (snap) => {
         if (snap.exists()) {
           setAcademyProgress(snap.data() as AcademyProgress);
@@ -140,7 +141,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     );
 
     const unsubChats = onSnapshot(
-      query(collection(db, 'chatMessages'), where('ownerId', '==', userId)),
+      query(collection(firestore, 'chatMessages'), where('ownerId', '==', userId)),
       (snap) => {
         setChatMessages(sortByCreatedAsc(snap.docs.map((d) => d.data() as ChatMessage)));
         markSettled();
@@ -149,7 +150,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     );
 
     const unsubResearch = onSnapshot(
-      query(collection(db, 'competitorResearch'), where('ownerId', '==', userId)),
+      query(collection(firestore, 'competitorResearch'), where('ownerId', '==', userId)),
       (snap) => {
         setResearchReports(sortByCreatedDesc(snap.docs.map((d) => d.data() as CompetitorResearch)));
         markSettled();
@@ -158,7 +159,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     );
 
     const unsubActivities = onSnapshot(
-      query(collection(db, 'activities'), where('ownerId', '==', userId)),
+      query(collection(firestore, 'activities'), where('ownerId', '==', userId)),
       (snap) => {
         setActivities(sortByCreatedDesc(snap.docs.map((d) => d.data() as Activity)).slice(0, 20));
       },
@@ -166,7 +167,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     );
 
     const unsubPhConnection = onSnapshot(
-      doc(db, 'phConnections', userId),
+      doc(firestore, 'phConnections', userId),
       (snap) => {
         if (snap.exists()) {
           setPhConnection(snap.data() as PhConnectionRecord);
@@ -178,7 +179,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     );
 
     const unsubSchedules = onSnapshot(
-      query(collection(db, 'launchSchedules'), where('ownerId', '==', userId)),
+      query(collection(firestore, 'launchSchedules'), where('ownerId', '==', userId)),
       (snap) => {
         setLaunchSchedules(
           sortByCreatedDesc(snap.docs.map((d) => d.data() as LaunchScheduleRecord))
@@ -188,7 +189,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     );
 
     const unsubSavedIntel = onSnapshot(
-      query(collection(db, 'savedIntelligence'), where('ownerId', '==', userId)),
+      query(collection(firestore, 'savedIntelligence'), where('ownerId', '==', userId)),
       (snap) => {
         setSavedIntelligence(
           sortByCreatedDesc(snap.docs.map((d) => d.data() as SavedIntelligenceItem))
@@ -211,9 +212,15 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     };
   }, [userId, emailVerified]);
 
+  const requireDb = () => {
+    if (!db) throw new Error('Firestore is not configured.');
+    return db;
+  };
+
   const logActivity = useCallback(
     async (type: ActivityType, title: string, detail?: string, projectId?: string) => {
-      if (!userId || !emailVerified) return;
+      const firestore = db;
+      if (!firestore || !userId || !emailVerified) return;
       const id = generateSafeId('act');
       const payload: Record<string, unknown> = {
         id,
@@ -225,7 +232,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       if (detail) payload.detail = clampString(detail, LIMITS.activityDetail);
       if (projectId) payload.projectId = clampString(projectId, LIMITS.id);
       try {
-        await setDoc(doc(db, 'activities', id), payload);
+        await setDoc(doc(firestore, 'activities', id), payload);
       } catch (err) {
         handleFirestoreError(err, OperationType.CREATE, `activities/${id}`);
       }
@@ -268,7 +275,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       if (input.description) payload.description = clampString(input.description, LIMITS.projectDescription);
 
       try {
-        await setDoc(doc(db, 'projects', id), payload);
+        await setDoc(doc(requireDb(), 'projects', id), payload);
         await logActivity('project', `Created project "${payload.name}"`, `Category: ${payload.category}`, id);
         return payload as unknown as Project;
       } catch (err) {
@@ -308,7 +315,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       if (updates.stage !== undefined) payload.stage = updates.stage;
 
       try {
-        await updateDoc(doc(db, 'projects', projectId), payload);
+        await updateDoc(doc(requireDb(), 'projects', projectId), payload);
       } catch (err) {
         handleFirestoreError(err, OperationType.UPDATE, `projects/${projectId}`);
       }
@@ -320,7 +327,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     async (projectId: string) => {
       if (!userId || !emailVerified) throw new Error('Verified user required.');
       try {
-        await deleteDoc(doc(db, 'projects', projectId));
+        await deleteDoc(doc(requireDb(), 'projects', projectId));
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `projects/${projectId}`);
       }
@@ -363,7 +370,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       };
 
       try {
-        await setDoc(doc(db, 'launchDrafts', id), payload);
+        await setDoc(doc(requireDb(), 'launchDrafts', id), payload);
         await logActivity('draft', `Saved launch draft ${payload.versionName}`, `${payload.productName} — "${payload.selectedTagline}"`, input.projectId);
         return id;
       } catch (err) {
@@ -403,7 +410,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       if (updates.launchAnnouncement !== undefined) payload.launchAnnouncement = clampString(updates.launchAnnouncement, LIMITS.launchAnnouncement);
 
       try {
-        await updateDoc(doc(db, 'launchDrafts', draftId), payload);
+        await updateDoc(doc(requireDb(), 'launchDrafts', draftId), payload);
       } catch (err) {
         handleFirestoreError(err, OperationType.UPDATE, `launchDrafts/${draftId}`);
       }
@@ -415,7 +422,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     async (draftId: string) => {
       if (!userId || !emailVerified) throw new Error('Verified user required.');
       try {
-        await deleteDoc(doc(db, 'launchDrafts', draftId));
+        await deleteDoc(doc(requireDb(), 'launchDrafts', draftId));
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `launchDrafts/${draftId}`);
       }
@@ -467,8 +474,8 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       };
 
       try {
-        await setDoc(doc(db, 'analysisReports', id), payload);
-        await updateDoc(doc(db, 'projects', input.projectId), {
+        await setDoc(doc(requireDb(), 'analysisReports', id), payload);
+        await updateDoc(doc(requireDb(), 'projects', input.projectId), {
           latestScore: score,
           stage: score >= 80 ? 'ready' : 'drafting',
           updatedAt: serverTimestamp(),
@@ -486,7 +493,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     async (reportId: string) => {
       if (!userId || !emailVerified) throw new Error('Verified user required.');
       try {
-        await deleteDoc(doc(db, 'analysisReports', reportId));
+        await deleteDoc(doc(requireDb(), 'analysisReports', reportId));
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `analysisReports/${reportId}`);
       }
@@ -504,7 +511,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
         ? currentLessons.filter((id) => id !== lessonId)
         : clampStringArray([...currentLessons, lessonId], LIMITS.maxCompletedLessons, 40);
 
-      const ref = doc(db, 'academyProgress', userId);
+      const ref = doc(requireDb(), 'academyProgress', userId);
       const isNew = !academyProgress?.updatedAt;
       try {
         if (isNew) {
@@ -541,7 +548,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
         ? currentChecklist.filter((id) => id !== itemId)
         : clampStringArray([...currentChecklist, itemId], LIMITS.maxCompletedChecklist, 40);
 
-      const ref = doc(db, 'academyProgress', userId);
+      const ref = doc(requireDb(), 'academyProgress', userId);
       const isNew = !academyProgress?.updatedAt;
       try {
         if (isNew) {
@@ -571,9 +578,9 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       const userMsgId = generateSafeId('msg');
       const botMsgId = generateSafeId('msg');
       const safeProjectId = clampString(projectId, LIMITS.id) || 'general';
-      const batch = writeBatch(db);
+      const batch = writeBatch(requireDb());
 
-      batch.set(doc(db, 'chatMessages', userMsgId), {
+      batch.set(doc(requireDb(), 'chatMessages', userMsgId), {
         id: userMsgId,
         ownerId: userId,
         projectId: safeProjectId,
@@ -581,7 +588,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
         content: clampString(userMessage, LIMITS.chatContent) || 'Question',
         createdAt: serverTimestamp(),
       });
-      batch.set(doc(db, 'chatMessages', botMsgId), {
+      batch.set(doc(requireDb(), 'chatMessages', botMsgId), {
         id: botMsgId,
         ownerId: userId,
         projectId: safeProjectId,
@@ -604,9 +611,9 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       if (!userId || !emailVerified) throw new Error('Verified user required.');
       const targets = chatMessages.filter((m) => m.projectId === projectId);
       if (targets.length === 0) return;
-      const batch = writeBatch(db);
+      const batch = writeBatch(requireDb());
       for (const m of targets) {
-        batch.delete(doc(db, 'chatMessages', m.id));
+        batch.delete(doc(requireDb(), 'chatMessages', m.id));
       }
       try {
         await batch.commit();
@@ -649,7 +656,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       };
 
       try {
-        await setDoc(doc(db, 'competitorResearch', id), payload);
+        await setDoc(doc(requireDb(), 'competitorResearch', id), payload);
         await logActivity('research', `Saved competitor research: "${payload.query}"`, `Source: ${payload.dataSource === 'mcp' ? 'Product Hunt MCP' : 'Strategy Framework'}`, input.projectId);
         return id;
       } catch (err) {
@@ -663,7 +670,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     async (researchId: string) => {
       if (!userId || !emailVerified) throw new Error('Verified user required.');
       try {
-        await deleteDoc(doc(db, 'competitorResearch', researchId));
+        await deleteDoc(doc(requireDb(), 'competitorResearch', researchId));
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `competitorResearch/${researchId}`);
       }
@@ -692,7 +699,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
         payload.lastConnectedAt = clampString(input.lastConnectedAt, LIMITS.lastConnectedAt);
       }
 
-      const ref = doc(db, 'phConnections', userId);
+      const ref = doc(requireDb(), 'phConnections', userId);
       try {
         if (!phConnection?.updatedAt) {
           await setDoc(ref, payload);
@@ -742,7 +749,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       if (input.notes) payload.notes = clampString(input.notes, LIMITS.scheduleNotes);
 
       try {
-        await setDoc(doc(db, 'launchSchedules', id), payload);
+        await setDoc(doc(requireDb(), 'launchSchedules', id), payload);
         await logActivity(
           'launch',
           `Tracked launch "${payload.productName}"`,
@@ -781,7 +788,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       if (updates.notes !== undefined) payload.notes = clampString(updates.notes, LIMITS.scheduleNotes);
 
       try {
-        await updateDoc(doc(db, 'launchSchedules', scheduleId), payload);
+        await updateDoc(doc(requireDb(), 'launchSchedules', scheduleId), payload);
       } catch (err) {
         handleFirestoreError(err, OperationType.UPDATE, `launchSchedules/${scheduleId}`);
       }
@@ -793,7 +800,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     async (scheduleId: string) => {
       if (!userId || !emailVerified) throw new Error('Verified user required.');
       try {
-        await deleteDoc(doc(db, 'launchSchedules', scheduleId));
+        await deleteDoc(doc(requireDb(), 'launchSchedules', scheduleId));
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `launchSchedules/${scheduleId}`);
       }
@@ -827,7 +834,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       if (input.url) payload.url = clampString(input.url, LIMITS.liveUrl);
 
       try {
-        await setDoc(doc(db, 'savedIntelligence', id), payload);
+        await setDoc(doc(requireDb(), 'savedIntelligence', id), payload);
         await logActivity(
           'intelligence',
           `Bookmarked ${input.kind}: "${payload.title}"`,
@@ -845,7 +852,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
     async (itemId: string) => {
       if (!userId || !emailVerified) throw new Error('Verified user required.');
       try {
-        await deleteDoc(doc(db, 'savedIntelligence', itemId));
+        await deleteDoc(doc(requireDb(), 'savedIntelligence', itemId));
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `savedIntelligence/${itemId}`);
       }

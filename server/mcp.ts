@@ -1,6 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {
+  getOAuthPersistenceStatus,
   getOfficialMcpEndpoint,
   getUserOAuthError,
   getUserOAuthSession,
@@ -10,7 +11,7 @@ import {
   setUserOAuthAccount,
   setUserOAuthError,
 } from './mcpOAuth.ts';
-import type { ProductHuntAccountInfo } from './mcpOAuth.ts';
+import type { OAuthPersistenceStatus, ProductHuntAccountInfo } from './mcpOAuth.ts';
 
 export interface McpToolDefinition {
   name: string;
@@ -37,6 +38,7 @@ export interface McpStatus {
   lastCheckedAt: string | null;
   lastConnectedAt: string | null;
   error: string | null;
+  sessionPersistence: OAuthPersistenceStatus;
 }
 
 export class McpRateLimitError extends Error {
@@ -129,6 +131,24 @@ function createTimeoutRateLimitedFetch(accessToken: string | null) {
   };
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s.`));
+    }, ms);
+    promise.then(
+      (val) => {
+        clearTimeout(timer);
+        resolve(val);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
 async function connectMcpSession(accessToken: string | null): Promise<ActiveClientSession> {
   const endpointUrl = getOfficialMcpEndpoint();
   const transport = new StreamableHTTPClientTransport(new URL(endpointUrl), {
@@ -140,7 +160,7 @@ async function connectMcpSession(accessToken: string | null): Promise<ActiveClie
     { capabilities: {} }
   );
 
-  await client.connect(transport);
+  await withTimeout(client.connect(transport), 18_000, 'Product Hunt MCP connection');
   const version = client.getServerVersion();
   if (version?.name) {
     cachedServerInfo = { name: version.name, version: version.version || '1.0.0' };
@@ -324,18 +344,33 @@ export async function discoverMcpTools(uid?: string): Promise<McpStatus> {
       ? (await getOrCreateUserClient(uid)).client
       : await getOrCreatePublicClient();
 
-    const listResult = await client.listTools();
+    const listResult = await withTimeout(client.listTools(), 18_000, 'MCP listTools');
     cachedTools = normalizeTools(
       (listResult.tools || []) as unknown as Array<Record<string, unknown>>
     );
     lastServerReachable = true;
     lastServerError = null;
   } catch (err) {
-    lastServerReachable = false;
-    lastServerError =
-      err instanceof Error ? err.message : 'Failed to connect to Product Hunt MCP server.';
     if (uid && err instanceof McpAuthError) {
+      // User's OAuth token failed, but verify public MCP reachability independently
       setUserOAuthError(uid, err.message);
+      try {
+        const pubClient = await getOrCreatePublicClient();
+        const listResult = await withTimeout(pubClient.listTools(), 18_000, 'MCP public listTools');
+        cachedTools = normalizeTools(
+          (listResult.tools || []) as unknown as Array<Record<string, unknown>>
+        );
+        lastServerReachable = true;
+        lastServerError = null;
+      } catch (pubErr) {
+        lastServerReachable = false;
+        lastServerError =
+          pubErr instanceof Error ? pubErr.message : 'Failed to connect to Product Hunt MCP server.';
+      }
+    } else {
+      lastServerReachable = false;
+      lastServerError =
+        err instanceof Error ? err.message : 'Failed to connect to Product Hunt MCP server.';
     }
   }
 
@@ -377,10 +412,14 @@ export async function callMcpToolForUser(
       );
     }
 
-    const raw = await client.callTool({
-      name: matchedTool.name,
-      arguments: args,
-    });
+    const raw = await withTimeout(
+      client.callTool({
+        name: matchedTool.name,
+        arguments: args,
+      }),
+      20_000,
+      `MCP tool "${matchedTool.name}"`
+    );
     const parsed = parseMcpToolResponse(raw);
     if (uid && authenticated) {
       markUserOAuthSuccess(uid);
@@ -496,5 +535,6 @@ export function getMcpStatusForUser(uid?: string): McpStatus {
     lastCheckedAt,
     lastConnectedAt: session?.lastSuccessAt || null,
     error: oauthErr || lastServerError,
+    sessionPersistence: getOAuthPersistenceStatus(),
   };
 }

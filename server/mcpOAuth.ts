@@ -1,4 +1,12 @@
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DATA_DIR = path.resolve(__dirname, '..', '.data');
+const OAUTH_STORE_FILE = path.join(DATA_DIR, 'ph-oauth-sessions.enc.json');
 
 export const OFFICIAL_PRODUCT_HUNT_MCP_URL = 'https://mcp.producthunt.com/mcp';
 const DEFAULT_RESOURCE_METADATA_URL =
@@ -64,13 +72,140 @@ interface CachedRegisteredClient {
   registrationMethod: 'env' | 'dcr' | 'cimd';
 }
 
-// Strict server-side in-memory stores (tokens never leave the server)
+export interface OAuthPersistenceStatus {
+  persistent: boolean;
+  mode: 'encrypted_file' | 'memory_only';
+  notice: string;
+}
+
+// Strict server-side stores (tokens & client secrets never leave the server)
 const userSessions = new Map<string, UserOAuthSession>();
 const userAuthErrors = new Map<string, string>();
 const pendingStates = new Map<string, PendingAuthState>();
 const registeredClientsByRedirect = new Map<string, CachedRegisteredClient>();
 
 let cachedMetadata: { data: OAuthServerMetadata; fetchedAt: number } | null = null;
+let storeLoaded = false;
+
+function getEncryptionKey(): Buffer | null {
+  const secret = process.env.OAUTH_STORAGE_SECRET?.trim();
+  if (!secret || secret.length < 16) {
+    return null;
+  }
+  return crypto.scryptSync(secret, 'huntpilot-ph-oauth-v1', 32);
+}
+
+export function getOAuthPersistenceStatus(): OAuthPersistenceStatus {
+  const secret = process.env.OAUTH_STORAGE_SECRET?.trim();
+  if (secret && secret.length >= 16) {
+    return {
+      persistent: true,
+      mode: 'encrypted_file',
+      notice:
+        'OAuth tokens are encrypted with AES-256-GCM on local server storage (survive restarts on persistent disk, reset on fresh container deploys).',
+    };
+  }
+  return {
+    persistent: false,
+    mode: 'memory_only',
+    notice:
+      'OAuth sessions are held in server memory only and reset on server restart. Set OAUTH_STORAGE_SECRET (16+ chars) to enable encrypted server-side persistence.',
+  };
+}
+
+function ensureOAuthStoreLoaded(): void {
+  if (storeLoaded) return;
+  storeLoaded = true;
+  const key = getEncryptionKey();
+  if (!key || !fs.existsSync(OAUTH_STORE_FILE)) return;
+
+  try {
+    const raw = fs.readFileSync(OAUTH_STORE_FILE, 'utf-8');
+    const parsed = JSON.parse(raw) as {
+      iv?: string;
+      tag?: string;
+      ciphertext?: string;
+    };
+    if (!parsed.iv || !parsed.tag || !parsed.ciphertext) return;
+
+    const decipher = crypto.createDecipheriv(
+      'aes-256-gcm',
+      key,
+      Buffer.from(parsed.iv, 'base64')
+    );
+    decipher.setAuthTag(Buffer.from(parsed.tag, 'base64'));
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(parsed.ciphertext, 'base64')),
+      decipher.final(),
+    ]).toString('utf-8');
+
+    const payload = JSON.parse(decrypted) as {
+      sessions?: Array<[string, UserOAuthSession]>;
+      pending?: Array<[string, PendingAuthState]>;
+      clients?: Array<[string, CachedRegisteredClient]>;
+    };
+
+    userSessions.clear();
+    pendingStates.clear();
+    registeredClientsByRedirect.clear();
+
+    for (const [k, v] of payload.sessions || []) {
+      userSessions.set(k, v);
+    }
+    const now = Date.now();
+    for (const [k, v] of payload.pending || []) {
+      if (now - v.createdAt <= 10 * 60 * 1000) {
+        pendingStates.set(k, v);
+      }
+    }
+    for (const [k, v] of payload.clients || []) {
+      registeredClientsByRedirect.set(k, v);
+    }
+  } catch {
+    // Do not crash on unreadable or rotated encrypted OAuth state; start fresh
+  }
+}
+
+export function reloadOAuthStoreForTest(): void {
+  storeLoaded = false;
+  userSessions.clear();
+  pendingStates.clear();
+  registeredClientsByRedirect.clear();
+  ensureOAuthStoreLoaded();
+}
+
+function persistOAuthStore(): void {
+  const key = getEncryptionKey();
+  if (!key) return;
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
+    }
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const serialized = JSON.stringify({
+      sessions: Array.from(userSessions.entries()),
+      pending: Array.from(pendingStates.entries()),
+      clients: Array.from(registeredClientsByRedirect.entries()),
+    });
+    const ciphertext = Buffer.concat([cipher.update(serialized, 'utf-8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    const tmpFile = `${OAUTH_STORE_FILE}.tmp`;
+    fs.writeFileSync(
+      tmpFile,
+      JSON.stringify({
+        v: 1,
+        iv: iv.toString('base64'),
+        tag: tag.toString('base64'),
+        ciphertext: ciphertext.toString('base64'),
+      }),
+      { encoding: 'utf-8', mode: 0o600 }
+    );
+    fs.renameSync(tmpFile, OAUTH_STORE_FILE);
+  } catch {
+    // Best-effort encrypted persistence
+  }
+}
 
 export function isPrivateOrMetadataHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
@@ -223,6 +358,7 @@ async function resolveOAuthClient(
     };
   }
 
+  ensureOAuthStoreLoaded();
   const cached = registeredClientsByRedirect.get(redirectUri);
   if (cached) {
     return cached;
@@ -261,6 +397,7 @@ async function resolveOAuthClient(
             registrationMethod: 'dcr',
           };
           registeredClientsByRedirect.set(redirectUri, entry);
+          persistOAuthStore();
           return entry;
         }
       }
@@ -276,6 +413,7 @@ async function resolveOAuthClient(
       registrationMethod: 'cimd',
     };
     registeredClientsByRedirect.set(redirectUri, entry);
+    persistOAuthStore();
     return entry;
   }
 
@@ -305,10 +443,15 @@ export async function startProductHuntOAuth(
   redirectUri: string;
   registrationMethod: 'env' | 'dcr' | 'cimd';
 }> {
+  ensureOAuthStoreLoaded();
   cleanupExpiredPendingStates();
   const meta = await getProductHuntOAuthMetadata();
   const cleanBase = appBaseUrl.replace(/\/+$/, '');
   const redirectUri = `${cleanBase}/api/mcp/oauth/callback`;
+  const parsedRedirect = new URL(redirectUri);
+  if (parsedRedirect.protocol !== 'https:' && parsedRedirect.protocol !== 'http:') {
+    throw new Error('Invalid application base URL for OAuth redirect.');
+  }
   const client = await resolveOAuthClient(redirectUri, cleanBase, meta);
 
   const codeVerifier = toBase64Url(crypto.randomBytes(48));
@@ -326,6 +469,7 @@ export async function startProductHuntOAuth(
     scope,
     createdAt: Date.now(),
   });
+  persistOAuthStore();
 
   userAuthErrors.delete(uid);
 
@@ -357,15 +501,21 @@ export async function completeProductHuntOAuthCallback(params: {
   uid?: string;
   error?: string;
 }> {
+  ensureOAuthStoreLoaded();
   const state = params.state?.trim() || '';
   const pending = pendingStates.get(state);
-  if (!state || !pending) {
+  if (!state || !pending || Date.now() - pending.createdAt > 10 * 60 * 1000) {
+    if (state) {
+      pendingStates.delete(state);
+      persistOAuthStore();
+    }
     return {
       ok: false,
       error: 'OAuth state is missing or expired. Please click Connect Product Hunt again.',
     };
   }
   pendingStates.delete(state);
+  persistOAuthStore();
 
   if (params.error) {
     const msg = params.errorDescription || `Product Hunt authorization failed (${params.error}).`;
@@ -443,6 +593,7 @@ export async function completeProductHuntOAuthCallback(params: {
 
     userSessions.set(pending.uid, session);
     userAuthErrors.delete(pending.uid);
+    persistOAuthStore();
 
     return { ok: true, uid: pending.uid };
   } catch (err) {
@@ -453,11 +604,13 @@ export async function completeProductHuntOAuthCallback(params: {
 }
 
 export async function refreshUserOAuthToken(uid: string): Promise<string | null> {
+  ensureOAuthStoreLoaded();
   const session = userSessions.get(uid);
   if (!session) return null;
 
   if (!session.refreshToken) {
     userSessions.delete(uid);
+    persistOAuthStore();
     userAuthErrors.set(uid, 'Product Hunt session expired. Please reconnect your account.');
     return null;
   }
@@ -501,9 +654,11 @@ export async function refreshUserOAuthToken(uid: string): Promise<string | null>
     session.expiresAt = Date.now() + expiresIn * 1000;
     session.lastSuccessAt = new Date().toISOString();
     userAuthErrors.delete(uid);
+    persistOAuthStore();
     return session.accessToken;
   } catch (err) {
     userSessions.delete(uid);
+    persistOAuthStore();
     userAuthErrors.set(
       uid,
       err instanceof Error ? err.message : 'Product Hunt OAuth refresh failed. Please reconnect.'
@@ -513,6 +668,7 @@ export async function refreshUserOAuthToken(uid: string): Promise<string | null>
 }
 
 export async function getValidUserAccessToken(uid: string): Promise<string | null> {
+  ensureOAuthStoreLoaded();
   const session = userSessions.get(uid);
   if (!session) return null;
   if (session.expiresAt && Date.now() > session.expiresAt - 60_000) {
@@ -522,21 +678,26 @@ export async function getValidUserAccessToken(uid: string): Promise<string | nul
 }
 
 export function getUserOAuthSession(uid: string): UserOAuthSession | null {
+  ensureOAuthStoreLoaded();
   return userSessions.get(uid) || null;
 }
 
 export function setUserOAuthAccount(uid: string, account: ProductHuntAccountInfo | null): void {
+  ensureOAuthStoreLoaded();
   const session = userSessions.get(uid);
   if (session) {
     session.account = account;
     session.lastSuccessAt = new Date().toISOString();
+    persistOAuthStore();
   }
 }
 
 export function markUserOAuthSuccess(uid: string): void {
+  ensureOAuthStoreLoaded();
   const session = userSessions.get(uid);
   if (session) {
     session.lastSuccessAt = new Date().toISOString();
+    persistOAuthStore();
   }
 }
 
@@ -553,9 +714,11 @@ export function setUserOAuthError(uid: string, message: string | null): void {
 }
 
 export async function disconnectUserOAuth(uid: string): Promise<void> {
+  ensureOAuthStoreLoaded();
   const session = userSessions.get(uid);
   userSessions.delete(uid);
   userAuthErrors.delete(uid);
+  persistOAuthStore();
 
   if (!session) return;
 

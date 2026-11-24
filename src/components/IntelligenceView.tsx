@@ -72,11 +72,11 @@ const SUB_TABS: Array<{
   { id: 'points', label: 'Points Leaderboard', icon: Award },
   { id: 'comments', label: 'Comments & Reviews', icon: MessageSquare },
   { id: 'speed', label: 'Speed Leaderboard', icon: Zap },
-  { id: 'hunters', label: 'Hunter Leaderboard', icon: UserCheck },
+  { id: 'hunters', label: 'Makers & Hunters', icon: UserCheck },
   { id: 'pulse', label: 'Pulse Leaderboard', icon: Flame },
   { id: 'history', label: 'Historical Analytics', icon: History },
   { id: 'product', label: 'Product Performance', icon: Gauge },
-  { id: 'hunter', label: 'Hunter Analytics', icon: Activity },
+  { id: 'hunter', label: 'Maker & Hunter Analytics', icon: Activity },
 ];
 
 function extractObjField(obj: Record<string, unknown> | null, keys: string[]): unknown {
@@ -121,7 +121,8 @@ export function IntelligenceView({
   const [productDetail, setProductDetail] = useState<ProductPerformanceResponse | null>(null);
   const [productLoading, setProductLoading] = useState(false);
 
-  // Hunter Analytics Page state
+  // Maker & Hunter Analytics Page state
+  const [personRoleTab, setPersonRoleTab] = useState<'makers' | 'hunters' | null>(null);
   const [hunterQueryInput, setHunterQueryInput] = useState('');
   const [hunterDetail, setHunterDetail] = useState<HunterAnalyticsResponse | null>(null);
   const [hunterLoading, setHunterLoading] = useState(false);
@@ -411,6 +412,14 @@ export function IntelligenceView({
         </div>
       </div>
 
+      {/* Storage & Persistence Status */}
+      {data?.storageStatus && (
+        <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 flex items-start gap-2.5 text-[11px] text-slate-600">
+          <Info className="w-3.5 h-3.5 text-[#6D28D9] shrink-0 mt-0.5" />
+          <span>{data.storageStatus.notice}</span>
+        </div>
+      )}
+
       {/* Blind Voting Window Notice when Product Hunt hides today's early scores */}
       {data?.pointsHidden && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
@@ -636,10 +645,14 @@ export function IntelligenceView({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {data.entries.map((entry, idx) => (
+                  {data.entries.map((entry) => (
                     <tr key={entry.slug} className="hover:bg-slate-50/70">
-                      <td className="py-3 pr-3 font-mono text-xs font-bold text-[#EA580C] tabular-nums whitespace-nowrap">
-                        {entry.rank !== null ? `#${entry.rank}` : `#${idx + 1}*`}
+                      <td className="py-3 pr-3 font-mono text-xs font-bold tabular-nums whitespace-nowrap">
+                        {entry.rank !== null ? (
+                          <span className="text-[#EA580C]">#{entry.rank}</span>
+                        ) : (
+                          <span className="text-amber-700 font-sans font-semibold">Hidden</span>
+                        )}
                       </td>
                       <td className="py-3 pr-4 max-w-sm">
                         <div className="flex items-start gap-2.5">
@@ -676,6 +689,22 @@ export function IntelligenceView({
                                 </button>
                               </p>
                             )}
+                            {entry.hunters.length > 0 && (
+                              <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                                Hunter:{' '}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openHunterAnalytics(
+                                      entry.hunters[0].username || entry.hunters[0].name
+                                    )
+                                  }
+                                  className="hover:text-[#6D28D9] underline cursor-pointer"
+                                >
+                                  {entry.hunters[0].name}
+                                </button>
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -700,7 +729,7 @@ export function IntelligenceView({
                         {renderPointsBadge(entry)}
                       </td>
                       <td className="py-3 pr-4 text-xs text-slate-600 whitespace-nowrap tabular-nums">
-                        {entry.reviewsCount !== null ? `${entry.reviewsCount} reviews` : '0 reviews'}
+                        {entry.reviewsCount !== null ? `${entry.reviewsCount} reviews` : 'Reviews N/A'}
                         {entry.rating !== null ? ` · ★ ${entry.rating.toFixed(1)}` : ''}
                       </td>
                       <td className="py-3 text-right whitespace-nowrap">
@@ -791,7 +820,7 @@ export function IntelligenceView({
                         <p className="text-xs text-slate-500 line-clamp-1">{entry.tagline}</p>
                       </td>
                       <td className="py-3 pr-4 font-mono text-xs font-bold text-[#0F172A] tabular-nums">
-                        {entry.reviewsCount ?? 0}
+                        {entry.reviewsCount !== null ? entry.reviewsCount : 'N/A'}
                       </td>
                       <td className="py-3 pr-4 font-mono text-xs text-amber-700 tabular-nums">
                         {entry.rating !== null ? `★ ${entry.rating.toFixed(1)}` : 'N/A'}
@@ -910,111 +939,166 @@ export function IntelligenceView({
         </div>
       )}
 
-      {/* 4. HUNTER & MAKER LEADERBOARD */}
-      {subTab === 'hunters' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-          <div>
-            <h2 className="text-base font-bold text-[#0F172A]">
-              Hunter &amp; Maker Leaderboard
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Aggregated from verified hunters and makers listed on the selected Product Hunt period launches.
-            </p>
-          </div>
+      {/* 4. MAKERS & HUNTERS LEADERBOARD */}
+      {subTab === 'hunters' && (() => {
+        const hunterRows = data?.hunterLeaderboard || [];
+        const makerRows = data?.makerLeaderboard || [];
+        const activeRoleView: 'hunters' | 'makers' =
+          personRoleTab ?? (hunterRows.length > 0 ? 'hunters' : 'makers');
+        const activeRows = activeRoleView === 'hunters' ? hunterRows : makerRows;
 
-          {!data || data.hunterLeaderboard.length === 0 ? (
-            <p className="text-xs text-slate-500 py-8 text-center">
-              No hunter or maker records observed for this period yet.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-xs text-slate-500">
-                    <th className="py-2.5 pr-4 font-medium">Hunter / Maker</th>
-                    <th className="py-2.5 pr-4 font-medium">Role</th>
-                    <th className="py-2.5 pr-4 font-medium">Launches</th>
-                    <th className="py-2.5 pr-4 font-medium">Visible Points</th>
-                    <th className="py-2.5 pr-4 font-medium">Best Rank</th>
-                    <th className="py-2.5 pr-4 font-medium">Top Categories</th>
-                    <th className="py-2.5 text-right font-medium">Analytics</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {data.hunterLeaderboard.map((h) => (
-                    <tr key={h.key} className="hover:bg-slate-50/70">
-                      <td className="py-3 pr-4">
-                        <button
-                          type="button"
-                          onClick={() => openHunterAnalytics(h.username || h.name)}
-                          className="font-semibold text-[#0F172A] hover:text-[#6D28D9] text-left cursor-pointer"
-                        >
-                          {h.name}
-                        </button>
-                        {h.username && (
-                          <p className="text-[11px] text-slate-500 font-mono">@{h.username}</p>
-                        )}
-                      </td>
-                      <td className="py-3 pr-4 text-xs">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">
-                          {h.roleLabel}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4 font-mono text-xs font-bold tabular-nums">
-                        {h.launchesCount}
-                      </td>
-                      <td className="py-3 pr-4 font-mono text-xs tabular-nums">
-                        {h.totalVisiblePoints !== null ? `${h.totalVisiblePoints} pts` : 'Hidden'}
-                      </td>
-                      <td className="py-3 pr-4 font-mono text-xs text-[#EA580C] tabular-nums">
-                        {h.bestRank !== null ? `#${h.bestRank}` : '—'}
-                      </td>
-                      <td className="py-3 pr-4 text-xs">
-                        <div className="flex flex-wrap gap-1">
-                          {h.topCategories.slice(0, 2).map((c) => (
-                            <span
-                              key={c}
-                              className="px-2 py-0.5 rounded bg-violet-50 text-[#6D28D9] text-[11px]"
-                            >
-                              {c}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-3 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-2">
+        return (
+          <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-[#0F172A]">
+                  Makers &amp; Hunters Leaderboard
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Roles are kept strictly separated based on fields returned by Product Hunt MCP.
+                </p>
+              </div>
+              <div className="inline-flex rounded-lg border border-slate-300 overflow-hidden shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setPersonRoleTab('hunters')}
+                  className={`px-3 py-1.5 text-xs font-semibold cursor-pointer ${
+                    activeRoleView === 'hunters'
+                      ? 'bg-[#0F172A] text-white'
+                      : 'bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  Hunters ({hunterRows.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPersonRoleTab('makers')}
+                  className={`px-3 py-1.5 text-xs font-semibold border-l border-slate-300 cursor-pointer ${
+                    activeRoleView === 'makers'
+                      ? 'bg-[#0F172A] text-white'
+                      : 'bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  Makers ({makerRows.length})
+                </button>
+              </div>
+            </div>
+
+            {!data || activeRows.length === 0 ? (
+              <div className="text-xs text-slate-500 py-8 text-center space-y-2">
+                <p>
+                  {activeRoleView === 'hunters'
+                    ? 'No separate hunter attribution was exposed by Product Hunt MCP for this period.'
+                    : 'No maker records observed for this period yet.'}
+                </p>
+                {activeRoleView === 'hunters' && makerRows.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPersonRoleTab('makers')}
+                    className="text-[#6D28D9] font-semibold underline cursor-pointer"
+                  >
+                    Switch to Makers ({makerRows.length})
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-xs text-slate-500">
+                      <th className="py-2.5 pr-4 font-medium">
+                        {activeRoleView === 'hunters' ? 'Hunter' : 'Maker'}
+                      </th>
+                      <th className="py-2.5 pr-4 font-medium">Verified Role</th>
+                      <th className="py-2.5 pr-4 font-medium">Launches</th>
+                      <th className="py-2.5 pr-4 font-medium">Visible Points</th>
+                      <th className="py-2.5 pr-4 font-medium">Best Rank</th>
+                      <th className="py-2.5 pr-4 font-medium">Top Categories</th>
+                      <th className="py-2.5 text-right font-medium">Analytics</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {activeRows.map((h) => (
+                      <tr key={`${h.roleLabel}-${h.key}`} className="hover:bg-slate-50/70">
+                        <td className="py-3 pr-4">
                           <button
                             type="button"
                             onClick={() => openHunterAnalytics(h.username || h.name)}
-                            className="text-xs font-semibold text-[#6D28D9] hover:underline cursor-pointer"
+                            className="font-semibold text-[#0F172A] hover:text-[#6D28D9] text-left cursor-pointer"
                           >
-                            View Profile
+                            {h.name}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleBookmark({
-                                kind: 'hunter',
-                                slugOrKey: h.username || h.name,
-                                title: h.name,
-                                subtitle: `${h.launchesCount} launches · ${h.roleLabel}`,
-                                url: h.profileUrl || undefined,
-                              })
-                            }
-                            className="p-1 text-slate-400 hover:text-[#EA580C] cursor-pointer"
+                          {h.username && (
+                            <p className="text-[11px] text-slate-500 font-mono">@{h.username}</p>
+                          )}
+                        </td>
+                        <td className="py-3 pr-4 text-xs">
+                          <span
+                            className={`px-2 py-0.5 rounded font-medium ${
+                              h.roleLabel === 'Hunter'
+                                ? 'bg-orange-50 text-[#C2410C]'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
                           >
-                            <Bookmark className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+                            {h.roleLabel}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4 font-mono text-xs font-bold tabular-nums">
+                          {h.launchesCount}
+                        </td>
+                        <td className="py-3 pr-4 font-mono text-xs tabular-nums">
+                          {h.totalVisiblePoints !== null ? `${h.totalVisiblePoints} pts` : 'Hidden'}
+                        </td>
+                        <td className="py-3 pr-4 font-mono text-xs text-[#EA580C] tabular-nums">
+                          {h.bestRank !== null ? `#${h.bestRank}` : '—'}
+                        </td>
+                        <td className="py-3 pr-4 text-xs">
+                          <div className="flex flex-wrap gap-1">
+                            {h.topCategories.slice(0, 2).map((c) => (
+                              <span
+                                key={c}
+                                className="px-2 py-0.5 rounded bg-violet-50 text-[#6D28D9] text-[11px]"
+                              >
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-3 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openHunterAnalytics(h.username || h.name)}
+                              className="text-xs font-semibold text-[#6D28D9] hover:underline cursor-pointer"
+                            >
+                              View Profile
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleBookmark({
+                                  kind: 'hunter',
+                                  slugOrKey: h.username || h.name,
+                                  title: h.name,
+                                  subtitle: `${h.launchesCount} launches · ${h.roleLabel}`,
+                                  url: h.profileUrl || undefined,
+                                })
+                              }
+                              className="p-1 text-slate-400 hover:text-[#EA580C] cursor-pointer"
+                            >
+                              <Bookmark className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 5. PULSE LEADERBOARD */}
       {subTab === 'pulse' && (
@@ -1485,19 +1569,33 @@ export function IntelligenceView({
               disabled={hunterLoading}
               className="px-5 py-2.5 rounded-lg bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-sm font-semibold cursor-pointer disabled:opacity-60"
             >
-              {hunterLoading ? 'Analyzing...' : 'Load Hunter Analytics'}
+              {hunterLoading ? 'Analyzing...' : 'Inspect Maker / Hunter'}
             </button>
           </form>
 
           {!hunterDetail ? (
             <p className="text-xs text-slate-500 py-4">
-              Click any maker or hunter name in the Points or Hunter Leaderboard—or search above—to inspect their observed Product Hunt launches, average points, best daily rank, and top categories.
+              Click any maker or hunter name in the Points or Makers &amp; Hunters Leaderboard—or search above—to inspect their observed Product Hunt launches, average points, best daily rank, and top categories.
             </p>
           ) : (
             <div className="space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-4 pb-4 border-b border-slate-100">
                 <div>
-                  <h2 className="text-xl font-bold text-[#0F172A]">{hunterDetail.name}</h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-xl font-bold text-[#0F172A]">{hunterDetail.name}</h2>
+                    {hunterDetail.rolesObserved.map((roleBadge) => (
+                      <span
+                        key={roleBadge}
+                        className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                          roleBadge === 'Hunter'
+                            ? 'bg-orange-50 text-[#C2410C]'
+                            : 'bg-violet-50 text-[#6D28D9]'
+                        }`}
+                      >
+                        {roleBadge}
+                      </span>
+                    ))}
+                  </div>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {hunterDetail.username ? `@${hunterDetail.username} · ` : ''}
                     {hunterDetail.headline || 'Observed Product Hunt Maker / Hunter'}
@@ -1518,7 +1616,7 @@ export function IntelligenceView({
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-xs font-semibold text-[#0F172A] cursor-pointer"
                   >
                     <Bookmark className="w-3.5 h-3.5 text-[#6D28D9]" />
-                    Bookmark Hunter
+                    Bookmark Profile
                   </button>
                   {hunterDetail.profileUrl && (
                     <a

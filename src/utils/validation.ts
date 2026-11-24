@@ -111,7 +111,7 @@ export function formatTimestamp(ts: unknown): string {
 }
 
 export async function authorizedFetch<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const user = auth.currentUser;
+  const user = auth?.currentUser;
   if (!user) {
     throw new Error('Please sign in to continue.');
   }

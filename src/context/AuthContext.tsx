@@ -24,6 +24,7 @@ import {
   googleProvider,
   handleFirestoreError,
   OperationType,
+  resolvedFirebaseStatus,
 } from '../firebase';
 import { ExperienceLevel, UserProfile } from '../types';
 import { clampString, LIMITS } from '../utils/validation';
@@ -44,7 +45,7 @@ interface AuthContextValue {
   ) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   resendVerification: () => Promise<void>;
-  reloadUser: () => Promise<void>;
+  reloadUser: () => Promise<boolean>;
   signOutUser: () => Promise<void>;
   updateUserProfile: (updates: {
     displayName: string;
@@ -88,11 +89,15 @@ function mapFirebaseAuthError(err: unknown): string {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [authReady, setAuthReady] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(!resolvedFirebaseStatus.configured);
+  const [authError, setAuthError] = useState<string | null>(resolvedFirebaseStatus.error);
   const [, setAuthVersion] = useState(0);
 
   useEffect(() => {
+    if (!auth || !resolvedFirebaseStatus.configured) {
+      setAuthReady(true);
+      return;
+    }
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       if (!firebaseUser) {
@@ -104,11 +109,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!authReady || !user) {
+    if (!authReady || !user || !db) {
       return;
     }
 
-    const userRef = doc(db, 'users', user.uid);
+    const firestore = db;
+    const userRef = doc(firestore, 'users', user.uid);
     let cancelled = false;
 
     async function ensureUserProfile() {
@@ -118,8 +124,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!snap.exists() && !cancelled) {
           const payload: Record<string, unknown> = {
             uid: user.uid,
-            displayName: clampString(user.displayName || user.email?.split('@')[0] || 'Founder', LIMITS.displayName) || 'Founder',
-            email: clampString(user.email || 'founder@example.com', LIMITS.email),
+            displayName:
+              clampString(user.displayName || user.email?.split('@')[0] || 'Founder', LIMITS.displayName) ||
+              'Founder',
+            email: clampString(user.email || '', LIMITS.email),
             experienceLevel: 'beginner',
             planTier: 'free',
             createdAt: serverTimestamp(),
@@ -131,11 +139,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await setDoc(userRef, payload);
         }
       } catch (err) {
-        handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`);
+        if (!cancelled) {
+          setAuthError('Unable to initialize your founder profile in Firestore. Please refresh and try again.');
+        }
+        console.error('ensureUserProfile error:', err);
       }
     }
 
-    ensureUserProfile();
+    void ensureUserProfile();
 
     const unsubProfile = onSnapshot(
       userRef,
@@ -147,7 +158,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       },
       (err) => {
-        handleFirestoreError(err, OperationType.GET, `users/${user.uid}`);
+        if (!cancelled) {
+          setAuthError('Unable to sync your founder profile from Firestore.');
+        }
+        console.error('Profile snapshot error:', err);
       }
     );
 
@@ -159,10 +173,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearAuthError = () => setAuthError(null);
 
+  const requireConfiguredAuth = () => {
+    if (!auth || !resolvedFirebaseStatus.configured) {
+      const msg = resolvedFirebaseStatus.error || 'Firebase Authentication is not configured.';
+      setAuthError(msg);
+      throw new Error(msg);
+    }
+    return auth;
+  };
+
   const signInWithGoogle = async () => {
     setAuthError(null);
+    const firebaseAuth = requireConfiguredAuth();
+    if (!googleProvider) throw new Error('Google sign-in provider is unavailable.');
     try {
-      await signInWithPopup(auth, googleProvider);
+      await signInWithPopup(firebaseAuth, googleProvider);
     } catch (err) {
       const msg = mapFirebaseAuthError(err);
       setAuthError(msg);
@@ -172,8 +197,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmail = async (email: string, password: string) => {
     setAuthError(null);
+    const firebaseAuth = requireConfiguredAuth();
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
     } catch (err) {
       const msg = mapFirebaseAuthError(err);
       setAuthError(msg);
@@ -188,12 +214,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     experienceLevel: ExperienceLevel
   ) => {
     setAuthError(null);
+    const firebaseAuth = requireConfiguredAuth();
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const cred = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
       const cleanName = clampString(name, LIMITS.displayName) || 'Founder';
       await updateProfile(cred.user, { displayName: cleanName });
       await sendEmailVerification(cred.user);
-      // Store preferred experience level temporarily in memory on reload once verified
       sessionStorage.setItem('hp_pending_exp', experienceLevel);
     } catch (err) {
       const msg = mapFirebaseAuthError(err);
@@ -204,8 +230,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     setAuthError(null);
+    const firebaseAuth = requireConfiguredAuth();
     try {
-      await sendPasswordResetEmail(auth, email.trim());
+      await sendPasswordResetEmail(firebaseAuth, email.trim());
     } catch (err) {
       const msg = mapFirebaseAuthError(err);
       setAuthError(msg);
@@ -214,10 +241,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resendVerification = async () => {
-    if (!auth.currentUser) return;
+    const firebaseAuth = requireConfiguredAuth();
+    if (!firebaseAuth.currentUser) return;
     setAuthError(null);
     try {
-      await sendEmailVerification(auth.currentUser);
+      await sendEmailVerification(firebaseAuth.currentUser);
     } catch (err) {
       const msg = mapFirebaseAuthError(err);
       setAuthError(msg);
@@ -225,19 +253,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const reloadUser = async () => {
-    if (!auth.currentUser) return;
+  const reloadUser = async (): Promise<boolean> => {
+    if (!auth?.currentUser) return false;
     await auth.currentUser.reload();
     setUser(auth.currentUser);
     setAuthVersion((v) => v + 1);
-    if (auth.currentUser.emailVerified) {
+    if (auth.currentUser.emailVerified && db) {
       const pendingExp = sessionStorage.getItem('hp_pending_exp');
       const userRef = doc(db, 'users', auth.currentUser.uid);
       const snap = await getDoc(userRef);
       if (!snap.exists()) {
         await setDoc(userRef, {
           uid: auth.currentUser.uid,
-          displayName: clampString(auth.currentUser.displayName || 'Founder', LIMITS.displayName),
+          displayName: clampString(auth.currentUser.displayName || 'Founder', LIMITS.displayName) || 'Founder',
           email: clampString(auth.currentUser.email || '', LIMITS.email),
           experienceLevel: pendingExp === 'experienced' ? 'experienced' : 'beginner',
           planTier: 'free',
@@ -247,10 +275,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       sessionStorage.removeItem('hp_pending_exp');
     }
+    return Boolean(auth.currentUser.emailVerified);
   };
 
   const signOutUser = async () => {
     setAuthError(null);
+    if (!auth) return;
     await signOut(auth);
   };
 
@@ -260,7 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     company?: string;
     experienceLevel: ExperienceLevel;
   }) => {
-    if (!user) throw new Error('Not signed in.');
+    if (!user || !user.emailVerified || !db) throw new Error('Verified signed-in user required.');
     const userRef = doc(db, 'users', user.uid);
     const payload: Record<string, unknown> = {
       displayName: clampString(updates.displayName, LIMITS.displayName) || 'Founder',

@@ -27,6 +27,7 @@ import {
   completeProductHuntOAuthCallback,
   DEFAULT_PH_SCOPES,
   disconnectUserOAuth,
+  getOAuthPersistenceStatus,
   startProductHuntOAuth,
 } from './server/mcpOAuth.ts';
 import {
@@ -35,6 +36,7 @@ import {
   getHistoricalSnapshots,
   getLeaderboardIntelligence,
   getProductPerformanceDetail,
+  isValidPeriodParam,
   startIntelligenceScheduler,
 } from './server/intelligence.ts';
 
@@ -47,7 +49,7 @@ try {
   const configPath = path.resolve(__dirname, 'firebase-applet-config.json');
   if (fs.existsSync(configPath)) {
     const raw = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as { projectId?: string };
-    if (raw.projectId && raw.projectId !== 'remixed-project-id') {
+    if (raw.projectId && raw.projectId !== 'remixed-project-id' && !raw.projectId.startsWith('YOUR_')) {
       firebaseProjectId = raw.projectId;
     }
   }
@@ -61,37 +63,130 @@ const adminApp = firebaseProjectId
     : initializeApp({ projectId: firebaseProjectId })
   : null;
 
-type AuthedRequest = express.Request & { uid?: string };
+export type VerifyTokenFn = (
+  token: string
+) => Promise<{ uid: string; email_verified?: boolean }>;
 
-async function requireFirebaseAuth(
-  req: AuthedRequest,
-  res: express.Response,
-  next: express.NextFunction
-): Promise<void> {
-  if (!adminApp) {
-    res.status(503).json({ error: 'Firebase project is not configured on the server.' });
-    return;
-  }
+const defaultVerifyToken: VerifyTokenFn | null = adminApp
+  ? async (token: string) => {
+      const decoded = await getAuth(adminApp).verifyIdToken(token);
+      return { uid: decoded.uid, email_verified: decoded.email_verified };
+    }
+  : null;
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Authentication required. Please sign in.' });
-    return;
-  }
+export type AuthedRequest = express.Request & { uid?: string };
 
-  const token = authHeader.slice('Bearer '.length).trim();
-  if (!token) {
-    res.status(401).json({ error: 'Missing authentication token.' });
-    return;
-  }
+export function createRateLimiter(opts: {
+  windowMs: number;
+  max: number;
+  keyPrefix: string;
+}): express.RequestHandler {
+  const buckets = new Map<string, { count: number; resetAt: number }>();
 
-  try {
-    const decoded = await getAuth(adminApp).verifyIdToken(token);
-    req.uid = decoded.uid;
+  return (req: AuthedRequest, res, next) => {
+    const now = Date.now();
+    if (buckets.size > 5000) {
+      for (const [k, entry] of buckets.entries()) {
+        if (entry.resetAt <= now) buckets.delete(k);
+      }
+    }
+
+    const identity = req.uid ? `u:${req.uid}` : `ip:${req.ip || req.socket.remoteAddress || 'unknown'}`;
+    const bucketKey = `${opts.keyPrefix}:${identity}`;
+    let entry = buckets.get(bucketKey);
+
+    if (!entry || entry.resetAt <= now) {
+      entry = { count: 0, resetAt: now + opts.windowMs };
+      buckets.set(bucketKey, entry);
+    }
+
+    entry.count += 1;
+    const remaining = Math.max(0, opts.max - entry.count);
+    const retryAfterSec = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
+
+    res.setHeader('X-RateLimit-Limit', String(opts.max));
+    res.setHeader('X-RateLimit-Remaining', String(remaining));
+    res.setHeader('X-RateLimit-Reset', String(Math.ceil(entry.resetAt / 1000)));
+
+    if (entry.count > opts.max) {
+      res.setHeader('Retry-After', String(retryAfterSec));
+      res.status(429).json({
+        error: 'Too many requests. Please wait a moment and try again.',
+        code: 'RATE_LIMITED',
+      });
+      return;
+    }
+
     next();
+  };
+}
+
+function isAllowedCorsOrigin(origin: string, req: express.Request): boolean {
+  try {
+    const parsed = new URL(origin);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+
+    const envUrl = process.env.APP_URL?.trim();
+    if (envUrl && envUrl !== 'MY_APP_URL') {
+      try {
+        if (new URL(envUrl).origin === parsed.origin) return true;
+      } catch {
+        // ignore invalid APP_URL
+      }
+    }
+
+    const reqHost = (req.get('x-forwarded-host') || req.get('host') || '').toLowerCase();
+    if (reqHost && parsed.host.toLowerCase() === reqHost) return true;
+
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1') return true;
+    if (host.endsWith('.run.app') && parsed.protocol === 'https:') return true;
+    if (
+      (host === 'aistudio.google.com' || host.endsWith('.aistudio.google.com')) &&
+      parsed.protocol === 'https:'
+    ) {
+      return true;
+    }
+    return false;
   } catch {
-    res.status(401).json({ error: 'Invalid or expired session token. Please sign in again.' });
+    return false;
   }
+}
+
+function buildRequireFirebaseAuth(verifyTokenFn: VerifyTokenFn | null): express.RequestHandler {
+  return async (req: AuthedRequest, res, next) => {
+    if (!verifyTokenFn) {
+      res.status(503).json({ error: 'Firebase project is not configured on the server.' });
+      return;
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authentication required. Please sign in.' });
+      return;
+    }
+
+    const token = authHeader.slice('Bearer '.length).trim();
+    if (!token) {
+      res.status(401).json({ error: 'Missing authentication token.' });
+      return;
+    }
+
+    try {
+      const decoded = await verifyTokenFn(token);
+      if (decoded.email_verified !== true) {
+        res.status(403).json({
+          error: 'Email verification required. Please verify your email address before continuing.',
+          code: 'EMAIL_VERIFICATION_REQUIRED',
+        });
+        return;
+      }
+      req.uid = decoded.uid;
+      next();
+    } catch {
+      res.status(401).json({ error: 'Invalid or expired session token. Please sign in again.' });
+    }
+  };
 }
 
 function getSafeString(val: unknown, maxLen: number): string {
@@ -252,16 +347,64 @@ function handleApiError(res: express.Response, err: unknown) {
   res.status(500).json({ error: message });
 }
 
-async function startServer() {
+export interface CreateAppOptions {
+  enableVite?: boolean;
+  verifyTokenFn?: VerifyTokenFn | null;
+}
+
+export async function createApp(options: CreateAppOptions = {}): Promise<express.Express> {
+  const enableVite = options.enableVite ?? process.env.NODE_ENV !== 'production';
+  const verifyTokenFn =
+    'verifyTokenFn' in options ? (options.verifyTokenFn ?? null) : defaultVerifyToken;
+
+  const requireFirebaseAuth = buildRequireFirebaseAuth(verifyTokenFn);
+  const publicLimiter = createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'pub' });
+  const standardApiLimiter = createRateLimiter({ windowMs: 60_000, max: 120, keyPrefix: 'api' });
+  const heavyLimiter = createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'heavy' });
+
   const app = express();
+  app.set('trust proxy', 1);
+  app.disable('x-powered-by');
+
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    next();
+  });
+
+  app.use('/api', (req, res, next) => {
+    const origin = req.headers.origin;
+    if (typeof origin === 'string' && origin.length > 0) {
+      if (!isAllowedCorsOrigin(origin, req)) {
+        res.status(403).json({ error: 'Cross-origin request blocked by CORS policy.' });
+        return;
+      }
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    }
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+    next();
+  });
+
   app.use(express.json({ limit: '4mb' }));
 
-  app.get('/api/health', (_req, res) => {
-    res.json({ ok: true, service: 'HuntPilot AI' });
+  app.get('/api/health', publicLimiter, (_req, res) => {
+    res.json({
+      ok: true,
+      service: 'HuntPilot AI',
+      firebaseConfigured: Boolean(verifyTokenFn),
+      oauthPersistence: getOAuthPersistenceStatus().mode,
+    });
   });
 
   // --- OAuth Client ID Metadata Document (for MCP CIMD support) ---
-  app.get('/api/mcp/oauth/client-metadata.json', (req, res) => {
+  app.get('/api/mcp/oauth/client-metadata.json', publicLimiter, (req, res) => {
     const base = resolveAppBaseUrl(req);
     res.json({
       client_id: `${base}/api/mcp/oauth/client-metadata.json`,
@@ -276,7 +419,7 @@ async function startServer() {
   });
 
   // --- Product Hunt MCP Connection & OAuth Endpoints ---
-  app.get('/api/mcp/status', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.get('/api/mcp/status', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     const uid = req.uid!;
     const current = getMcpStatusForUser(uid);
     if (!current.serverReachable && current.tools.length === 0) {
@@ -287,7 +430,7 @@ async function startServer() {
     res.json(current);
   });
 
-  app.post('/api/mcp/test', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/test', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const status = await testMcpConnectionForUser(req.uid!);
       res.json(status);
@@ -296,7 +439,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/discover', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/discover', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const status = await discoverMcpTools(req.uid!);
       res.json(status);
@@ -305,7 +448,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/oauth/start', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/oauth/start', requireFirebaseAuth, heavyLimiter, async (req: AuthedRequest, res) => {
     try {
       const base = resolveAppBaseUrl(req);
       const data = await startProductHuntOAuth(req.uid!, base);
@@ -353,6 +496,16 @@ async function startServer() {
       ? 'Authorization completed. Returning to HuntPilot AI...'
       : String(result.error || 'Could not complete authorization.').replace(/[<>&"]/g, '');
 
+    const baseUrl = resolveAppBaseUrl(req);
+    let targetOrigin = '*';
+    try {
+      targetOrigin = new URL(baseUrl).origin;
+    } catch {
+      targetOrigin = '*';
+    }
+    const safeTargetOrigin = JSON.stringify(targetOrigin).replace(/</g, '\\u003c');
+    const redirectFallback = result.ok ? '/app/profile?ph_oauth=success' : '/app/profile?ph_oauth=error';
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(`<!doctype html>
 <html lang="en">
@@ -374,11 +527,16 @@ async function startServer() {
     <script>
       (function () {
         var payload = ${safeScriptPayload};
+        var targetOrigin = ${safeTargetOrigin};
         if (window.opener) {
-          window.opener.postMessage(payload, '*');
+          try {
+            window.opener.postMessage(payload, targetOrigin);
+          } catch (e) {
+            window.opener.postMessage(payload, window.location.origin);
+          }
           setTimeout(function () { window.close(); }, 350);
         } else {
-          setTimeout(function () { window.location.href = '/'; }, 1200);
+          setTimeout(function () { window.location.href = ${JSON.stringify(redirectFallback)}; }, 1200);
         }
       })();
     </script>
@@ -386,9 +544,9 @@ async function startServer() {
 </html>`);
   };
 
-  app.get(['/api/mcp/oauth/callback', '/api/mcp/oauth/callback/'], handleOAuthCallback);
+  app.get(['/api/mcp/oauth/callback', '/api/mcp/oauth/callback/'], publicLimiter, handleOAuthCallback);
 
-  app.post('/api/mcp/oauth/disconnect', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/oauth/disconnect', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const uid = req.uid!;
       await disconnectUserOAuth(uid);
@@ -400,7 +558,7 @@ async function startServer() {
   });
 
   // --- Official Product Hunt MCP Discovery & Research Routes ---
-  app.get('/api/mcp/categories', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.get('/api/mcp/categories', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const result = await callMcpToolForUser(req.uid!, 'get_categories', {});
       res.json(result);
@@ -409,7 +567,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/products/search', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/products/search', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const args: Record<string, unknown> = {};
       const query = getSafeString(req.body?.query, 200);
@@ -451,7 +609,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/products/profile', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/products/profile', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const productName = getSafeString(req.body?.productName, 200);
       if (!productName) {
@@ -467,7 +625,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/products/alternatives', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/products/alternatives', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const product = getSafeString(req.body?.product, 200);
       if (!product) {
@@ -488,7 +646,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/products/compare', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/products/compare', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const products = getSafeStringArray(req.body?.products, 3, 200);
       if (products.length < 2) {
@@ -521,11 +679,19 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/leaderboard', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/leaderboard', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const args: Record<string, unknown> = {};
       const date = getSafeString(req.body?.date, 20);
-      if (date) args.date = date;
+      if (date) {
+        if (!isValidPeriodParam(date)) {
+          res.status(400).json({ error: 'Invalid date format. Use today, yesterday, YYYY-MM-DD, YYYY-Www, or YYYY-MM.' });
+          return;
+        }
+        if (/^\d{4}(-\d{2}(-\d{2})?|-W\d{2})?$/.test(date)) {
+          args.date = date;
+        }
+      }
       if (typeof req.body?.limit === 'number') {
         args.limit = Math.min(25, Math.max(1, Math.floor(req.body.limit)));
       }
@@ -540,7 +706,7 @@ async function startServer() {
   });
 
   // --- Official Product Hunt Launch Management Routes (OAuth Required + Safe 2-Step Confirmation) ---
-  app.get('/api/mcp/launches', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.get('/api/mcp/launches', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const statusFilter =
         typeof req.query.status === 'string' &&
@@ -564,7 +730,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/launches/context', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/launches/context', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const args: Record<string, unknown> = {};
       const url = getSafeString(req.body?.url, 2048);
@@ -583,7 +749,7 @@ async function startServer() {
     }
   });
 
-  app.get('/api/mcp/launches/:launchId', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.get('/api/mcp/launches/:launchId', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const launchId = getSafeString(req.params.launchId, 64);
       if (!launchId) {
@@ -603,9 +769,15 @@ async function startServer() {
   });
 
   // --- Live Product Hunt Intelligence & Snapshot Analytics Routes ---
-  app.get('/api/intelligence/leaderboards', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.get('/api/intelligence/leaderboards', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const date = getSafeString(req.query.date, 20);
+      if (date && !isValidPeriodParam(date)) {
+        res.status(400).json({
+          error: 'Invalid date period format. Use today, yesterday, YYYY-MM-DD, YYYY-Www, or YYYY-MM.',
+        });
+        return;
+      }
       const sort = getSafeString(req.query.sort, 20);
       const category = getSafeString(req.query.category, 80);
       const query = getSafeString(req.query.q, 120);
@@ -621,9 +793,15 @@ async function startServer() {
     }
   });
 
-  app.post('/api/intelligence/refresh', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/intelligence/refresh', requireFirebaseAuth, heavyLimiter, async (req: AuthedRequest, res) => {
     try {
       const date = getSafeString(req.body?.date, 20);
+      if (date && !isValidPeriodParam(date)) {
+        res.status(400).json({
+          error: 'Invalid date period format. Use today, yesterday, YYYY-MM-DD, YYYY-Www, or YYYY-MM.',
+        });
+        return;
+      }
       await captureLeaderboardSnapshot(date || undefined, false);
       const data = await getLeaderboardIntelligence({
         date: date || undefined,
@@ -637,9 +815,15 @@ async function startServer() {
     }
   });
 
-  app.get('/api/intelligence/history', requireFirebaseAuth, (req: AuthedRequest, res) => {
+  app.get('/api/intelligence/history', requireFirebaseAuth, standardApiLimiter, (req: AuthedRequest, res) => {
     try {
       const date = getSafeString(req.query.date, 20);
+      if (date && !isValidPeriodParam(date)) {
+        res.status(400).json({
+          error: 'Invalid date period format. Use today, yesterday, YYYY-MM-DD, YYYY-Www, or YYYY-MM.',
+        });
+        return;
+      }
       const slug = getSafeString(req.query.slug, 120);
       const history = getHistoricalSnapshots({
         date: date || undefined,
@@ -651,7 +835,7 @@ async function startServer() {
     }
   });
 
-  app.get('/api/intelligence/product/:slugOrName', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.get('/api/intelligence/product/:slugOrName', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const slugOrName = getSafeString(req.params.slugOrName, 160);
       if (!slugOrName) {
@@ -665,7 +849,7 @@ async function startServer() {
     }
   });
 
-  app.get('/api/intelligence/hunter/:nameOrUsername', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.get('/api/intelligence/hunter/:nameOrUsername', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const nameOrUsername = getSafeString(req.params.nameOrUsername, 160);
       if (!nameOrUsername) {
@@ -679,7 +863,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/launches/:launchId/preview', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/launches/:launchId/preview', requireFirebaseAuth, standardApiLimiter, async (req: AuthedRequest, res) => {
     try {
       const launchId = getSafeString(req.params.launchId, 64);
       if (!launchId) {
@@ -697,7 +881,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/launches/start', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/launches/start', requireFirebaseAuth, heavyLimiter, async (req: AuthedRequest, res) => {
     try {
       if (req.body?.explicitUserConfirmed !== true) {
         res.status(400).json({
@@ -748,7 +932,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/launches/:launchId/update', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/launches/:launchId/update', requireFirebaseAuth, heavyLimiter, async (req: AuthedRequest, res) => {
     try {
       const launchId = getSafeString(req.params.launchId, 64);
       const expectedRevision = getSafeString(req.body?.expected_revision, 64);
@@ -792,7 +976,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/launches/:launchId/submit', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/launches/:launchId/submit', requireFirebaseAuth, heavyLimiter, async (req: AuthedRequest, res) => {
     try {
       const launchId = getSafeString(req.params.launchId, 64);
       if (!launchId) {
@@ -825,7 +1009,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/mcp/launches/:launchId/prepare-asset', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/mcp/launches/:launchId/prepare-asset', requireFirebaseAuth, heavyLimiter, async (req: AuthedRequest, res) => {
     try {
       const launchId = getSafeString(req.params.launchId, 64);
       const kind = req.body?.kind === 'thumbnail' ? 'thumbnail' : 'gallery';
@@ -853,7 +1037,7 @@ async function startServer() {
   });
 
   // --- Launch Academy Plain-English AI Explainer ---
-  app.post('/api/ai/academy-explain', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/ai/academy-explain', requireFirebaseAuth, heavyLimiter, async (req: AuthedRequest, res) => {
     try {
       const lessonTitle = getSafeString(req.body?.lessonTitle, 200);
       const lessonExplanation = getSafeString(req.body?.lessonExplanation, 3000);
@@ -887,7 +1071,7 @@ async function startServer() {
   });
 
   // --- AI Launch Draft Generator ---
-  app.post('/api/ai/generate-draft', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/ai/generate-draft', requireFirebaseAuth, heavyLimiter, async (req: AuthedRequest, res) => {
     try {
       const productName = getSafeString(req.body?.productName, 120);
       const category = getSafeString(req.body?.category, 80);
@@ -924,7 +1108,7 @@ async function startServer() {
   });
 
   // --- AI Launch Analyzer (Grounded with Real Product Hunt MCP Data when available) ---
-  app.post('/api/ai/analyze-launch', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/ai/analyze-launch', requireFirebaseAuth, heavyLimiter, async (req: AuthedRequest, res) => {
     try {
       const uid = req.uid!;
       const productName = getSafeString(req.body?.productName, 120);
@@ -1028,7 +1212,7 @@ async function startServer() {
   });
 
   // --- HuntPilot AI Assistant (with Live MCP Tool Execution) ---
-  app.post('/api/ai/assistant', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/ai/assistant', requireFirebaseAuth, heavyLimiter, async (req: AuthedRequest, res) => {
     try {
       const message = getSafeString(req.body?.message, 2000);
       if (!message) {
@@ -1089,7 +1273,7 @@ async function startServer() {
   });
 
   // --- Competitor Research (Real Official Product Hunt MCP + Grounded AI Synthesis) ---
-  app.post('/api/ai/competitor-research', requireFirebaseAuth, async (req: AuthedRequest, res) => {
+  app.post('/api/ai/competitor-research', requireFirebaseAuth, heavyLimiter, async (req: AuthedRequest, res) => {
     try {
       const uid = req.uid!;
       const query = getSafeString(req.body?.query, 200);
@@ -1144,15 +1328,20 @@ async function startServer() {
     }
   });
 
+  // --- JSON 404 Catch-all for unknown /api/* routes ---
+  app.use('/api', (_req, res) => {
+    res.status(404).json({ error: 'API endpoint not found.' });
+  });
+
   // --- Vite / Static Serving ---
-  if (process.env.NODE_ENV !== 'production') {
+  if (enableVite) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (process.env.NODE_ENV === 'production') {
     const distDir = path.resolve(__dirname, 'dist');
     app.use(express.static(distDir));
     app.get('*', (_req, res) => {
@@ -1160,11 +1349,28 @@ async function startServer() {
     });
   }
 
+  return app;
+}
+
+async function startServer() {
+  const app = await createApp();
   const PORT = 3000;
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`HuntPilot AI server listening on http://0.0.0.0:${PORT}`);
+    const oauthPersistence = getOAuthPersistenceStatus();
+    console.log(
+      `HuntPilot AI server listening on http://0.0.0.0:${PORT} | Firebase: ${
+        firebaseProjectId || 'NOT_CONFIGURED'
+      } | GEMINI_API_KEY: ${process.env.GEMINI_API_KEY ? 'configured' : 'unset'} | OAuth storage: ${
+        oauthPersistence.mode
+      }`
+    );
     startIntelligenceScheduler();
   });
 }
 
-startServer();
+const isMainModule = Boolean(
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename)
+);
+if (isMainModule) {
+  void startServer();
+}

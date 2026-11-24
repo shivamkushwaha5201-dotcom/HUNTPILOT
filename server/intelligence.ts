@@ -99,8 +99,11 @@ let store: SnapshotStore = {
 let schedulerHandle: ReturnType<typeof setInterval> | null = null;
 let lastSchedulerTickAt: number | null = null;
 let refreshInFlight: Promise<SnapshotRecord> | null = null;
+let storeLoaded = false;
 
 function ensureStoreLoaded() {
+  if (storeLoaded) return;
+  storeLoaded = true;
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -155,6 +158,31 @@ export function getPacificDateString(offsetDays = 0): string {
   }).format(target);
 }
 
+export interface IntelligenceStorageStatus {
+  mode: 'local_file_ephemeral';
+  survivesProcessRestart: boolean;
+  survivesDeployment: boolean;
+  notice: string;
+}
+
+export function getIntelligenceStorageStatus(): IntelligenceStorageStatus {
+  return {
+    mode: 'local_file_ephemeral',
+    survivesProcessRestart: true,
+    survivesDeployment: false,
+    notice:
+      'Snapshots are cached in local server storage (.data/ph-snapshots.json) and survive process restarts, but reset on fresh container deployments because no shared server snapshot database is configured. Your personal watchlists are saved permanently in Firebase.',
+  };
+}
+
+export function isValidPeriodParam(dateParam?: string): boolean {
+  if (!dateParam || !dateParam.trim()) return true;
+  const clean = dateParam.trim();
+  const lower = clean.toLowerCase();
+  if (lower === 'today' || lower === 'yesterday') return true;
+  return /^\d{4}(-\d{2}(-\d{2})?|-W\d{2})?$/.test(clean);
+}
+
 export function normalizePeriodKey(dateParam?: string): string {
   const clean = (dateParam || '').trim();
   if (!clean || clean.toLowerCase() === 'today') {
@@ -163,7 +191,19 @@ export function normalizePeriodKey(dateParam?: string): string {
   if (clean.toLowerCase() === 'yesterday') {
     return getPacificDateString(-1);
   }
+  if (!isValidPeriodParam(clean)) {
+    throw new Error('Invalid date period format. Use today, yesterday, YYYY-MM-DD, YYYY-Www, or YYYY-MM.');
+  }
   return clean;
+}
+
+export function setSnapshotsForTest(periods: Record<string, SnapshotRecord[]>): void {
+  storeLoaded = true;
+  store = {
+    periods,
+    lastCollectionAt: new Date().toISOString(),
+    lastError: null,
+  };
 }
 
 function extractMakersOrHunters(rawList: unknown): MakerEntry[] {
@@ -179,7 +219,7 @@ function extractMakersOrHunters(rawList: unknown): MakerEntry[] {
     .filter((m) => Boolean(m.name));
 }
 
-function parseLeaderboardItems(data: Record<string, unknown> | null): SnapshotProductItem[] {
+export function parseLeaderboardItems(data: Record<string, unknown> | null): SnapshotProductItem[] {
   if (!data) return [];
   const rawResults = Array.isArray(data.results) ? data.results : [];
   return rawResults
@@ -350,28 +390,10 @@ export async function captureLeaderboardSnapshot(
   }
 }
 
-export async function getLeaderboardIntelligence(params: {
-  date?: string;
-  sort?: string;
-  category?: string;
-  query?: string;
-}) {
-  const periodKey = normalizePeriodKey(params.date);
-  let snapshots = store.periods[periodKey] || [];
-
-  if (snapshots.length === 0) {
-    try {
-      await captureLeaderboardSnapshot(periodKey, true);
-      snapshots = store.periods[periodKey] || [];
-    } catch {
-      // Return empty with clear error metadata rather than crashing
-    }
-  }
-
+export function computeEnrichedEntries(snapshots: SnapshotRecord[]): EnrichedLeaderboardEntry[] {
   const latest = snapshots[snapshots.length - 1] || null;
   const previous = snapshots.length >= 2 ? snapshots[snapshots.length - 2] : null;
 
-  // Build lookup by slug across captured snapshots for real delta calculation
   const firstBySlug = new Map<string, { item: SnapshotProductItem; capturedAt: string }>();
   const prevBySlug = new Map<string, { item: SnapshotProductItem; capturedAt: string }>();
   const countBySlug = new Map<string, number>();
@@ -395,7 +417,7 @@ export async function getLeaderboardIntelligence(params: {
     0
   );
 
-  let entries: EnrichedLeaderboardEntry[] = latestItems.map((item) => {
+  return latestItems.map((item) => {
     const firstObs = firstBySlug.get(item.slug);
     const prevObs = prevBySlug.get(item.slug);
     const pointsHidden = item.points === null;
@@ -424,8 +446,8 @@ export async function getLeaderboardIntelligence(params: {
       if (pointsPerHour === null && item.launchedAt) {
         const launchMs = new Date(item.launchedAt).getTime();
         const refMs = latest ? new Date(latest.capturedAt).getTime() : Date.now();
-        const elapsedHours = Math.max(0.25, Math.min(24, (refMs - launchMs) / 3_600_000));
-        if (Number.isFinite(elapsedHours) && elapsedHours > 0) {
+        if (Number.isFinite(launchMs) && Number.isFinite(refMs) && refMs >= launchMs) {
+          const elapsedHours = Math.max(0.25, Math.min(24, (refMs - launchMs) / 3_600_000));
           pointsPerHour = Number((item.points / elapsedHours).toFixed(2));
           velocitySource = 'since_launch';
         }
@@ -447,9 +469,10 @@ export async function getLeaderboardIntelligence(params: {
     if (!pointsHidden && item.points !== null) {
       const pointRatio = maxVisiblePoints > 0 ? item.points / maxVisiblePoints : 0;
       const velocityBonus =
-        pointsPerHour !== null ? Math.min(1, pointsPerHour / 25) : pointRatio;
-      const engagementRaw = (item.commentsCount ?? item.reviewsCount ?? 0) / 20;
-      const engagementBonus = Math.min(1, engagementRaw);
+        pointsPerHour !== null ? Math.min(1, Math.max(0, pointsPerHour / 25)) : pointRatio;
+      const engagementVal = item.commentsCount ?? item.reviewsCount;
+      const engagementBonus =
+        engagementVal !== null ? Math.min(1, Math.max(0, engagementVal / 20)) : 0;
       pulseScore = Math.round(
         pointRatio * 55 + velocityBonus * 30 + engagementBonus * 15
       );
@@ -467,59 +490,13 @@ export async function getLeaderboardIntelligence(params: {
       pointsHidden,
     };
   });
+}
 
-  // Collect available categories before filtering
-  const categorySet = new Set<string>();
-  for (const entry of entries) {
-    for (const c of entry.categories) categorySet.add(c);
-  }
-
-  // Filter by category & search query
-  if (params.category && params.category !== 'all') {
-    const target = params.category.toLowerCase();
-    entries = entries.filter((e) =>
-      e.categories.some((c) => c.toLowerCase() === target)
-    );
-  }
-  if (params.query && params.query.trim()) {
-    const q = params.query.trim().toLowerCase();
-    entries = entries.filter(
-      (e) =>
-        e.name.toLowerCase().includes(q) ||
-        e.tagline.toLowerCase().includes(q) ||
-        e.makers.some((m) => m.name.toLowerCase().includes(q))
-    );
-  }
-
-  // Sort strictly using real values (nulls last)
-  const sortMode = params.sort || 'rank';
-  entries.sort((a, b) => {
-    if (sortMode === 'points') {
-      return (b.points ?? -1) - (a.points ?? -1);
-    }
-    if (sortMode === 'speed') {
-      return (b.pointsPerHour ?? -1) - (a.pointsPerHour ?? -1);
-    }
-    if (sortMode === 'comments') {
-      const aVal = a.commentsCount ?? a.reviewsCount ?? -1;
-      const bVal = b.commentsCount ?? b.reviewsCount ?? -1;
-      return bVal - aVal;
-    }
-    if (sortMode === 'pulse') {
-      return (b.pulseScore ?? -1) - (a.pulseScore ?? -1);
-    }
-    if (sortMode === 'name') {
-      return a.name.localeCompare(b.name);
-    }
-    // default 'rank'
-    if (a.rank !== null && b.rank !== null) return a.rank - b.rank;
-    if (a.rank !== null) return -1;
-    if (b.rank !== null) return 1;
-    return (b.points ?? -1) - (a.points ?? -1);
-  });
-
-  // Build Hunter / Maker Leaderboard across all snapshots for this period (or latest)
-  const hunterMap = new Map<
+export function buildPersonLeaderboard(
+  items: SnapshotProductItem[],
+  role: 'Hunter' | 'Maker'
+): HunterLeaderboardRow[] {
+  const personMap = new Map<
     string,
     {
       key: string;
@@ -531,16 +508,13 @@ export async function getLeaderboardIntelligence(params: {
     }
   >();
 
-  for (const item of latestItems) {
-    const people: Array<{ entry: MakerEntry; role: 'Hunter' | 'Maker' }> = [
-      ...item.hunters.map((h) => ({ entry: h, role: 'Hunter' as const })),
-      ...item.makers.map((m) => ({ entry: m, role: 'Maker' as const })),
-    ];
-    for (const { entry, role } of people) {
+  for (const item of items) {
+    const list = role === 'Hunter' ? item.hunters : item.makers;
+    for (const entry of list) {
       const key = (entry.username || entry.name).toLowerCase().trim();
       if (!key) continue;
-      if (!hunterMap.has(key)) {
-        hunterMap.set(key, {
+      if (!personMap.has(key)) {
+        personMap.set(key, {
           key,
           name: entry.name,
           username: entry.username || null,
@@ -549,13 +523,11 @@ export async function getLeaderboardIntelligence(params: {
           products: new Map(),
         });
       }
-      const bucket = hunterMap.get(key)!;
-      if (role === 'Hunter') bucket.roleLabel = 'Hunter';
-      bucket.products.set(item.slug, item);
+      personMap.get(key)!.products.set(item.slug, item);
     }
   }
 
-  const hunterLeaderboard: HunterLeaderboardRow[] = Array.from(hunterMap.values())
+  return Array.from(personMap.values())
     .map((h) => {
       const prods = Array.from(h.products.values());
       const visiblePoints = prods
@@ -609,6 +581,85 @@ export async function getLeaderboardIntelligence(params: {
       if (b.launchesCount !== a.launchesCount) return b.launchesCount - a.launchesCount;
       return a.name.localeCompare(b.name);
     });
+}
+
+export async function getLeaderboardIntelligence(params: {
+  date?: string;
+  sort?: string;
+  category?: string;
+  query?: string;
+}) {
+  ensureStoreLoaded();
+  const periodKey = normalizePeriodKey(params.date);
+  let snapshots = store.periods[periodKey] || [];
+
+  if (snapshots.length === 0) {
+    try {
+      await captureLeaderboardSnapshot(periodKey, true);
+      snapshots = store.periods[periodKey] || [];
+    } catch {
+      // Return empty with clear error metadata rather than crashing
+    }
+  }
+
+  const latest = snapshots[snapshots.length - 1] || null;
+  const latestItems = latest?.items || [];
+  let entries = computeEnrichedEntries(snapshots);
+
+  // Collect available categories before filtering
+  const categorySet = new Set<string>();
+  for (const entry of entries) {
+    for (const c of entry.categories) categorySet.add(c);
+  }
+
+  // Filter by category & search query
+  if (params.category && params.category !== 'all') {
+    const target = params.category.toLowerCase();
+    entries = entries.filter((e) =>
+      e.categories.some((c) => c.toLowerCase() === target)
+    );
+  }
+  if (params.query && params.query.trim()) {
+    const q = params.query.trim().toLowerCase();
+    entries = entries.filter(
+      (e) =>
+        e.name.toLowerCase().includes(q) ||
+        e.tagline.toLowerCase().includes(q) ||
+        e.makers.some((m) => m.name.toLowerCase().includes(q)) ||
+        e.hunters.some((h) => h.name.toLowerCase().includes(q))
+    );
+  }
+
+  // Sort strictly using real values (nulls last)
+  const sortMode = params.sort || 'rank';
+  entries.sort((a, b) => {
+    if (sortMode === 'points') {
+      return (b.points ?? -1) - (a.points ?? -1);
+    }
+    if (sortMode === 'speed') {
+      return (b.pointsPerHour ?? -1) - (a.pointsPerHour ?? -1);
+    }
+    if (sortMode === 'comments') {
+      const aVal = a.commentsCount ?? a.reviewsCount ?? -1;
+      const bVal = b.commentsCount ?? b.reviewsCount ?? -1;
+      return bVal - aVal;
+    }
+    if (sortMode === 'pulse') {
+      return (b.pulseScore ?? -1) - (a.pulseScore ?? -1);
+    }
+    if (sortMode === 'name') {
+      return a.name.localeCompare(b.name);
+    }
+    // default 'rank'
+    if (a.rank !== null && b.rank !== null) return a.rank - b.rank;
+    if (a.rank !== null) return -1;
+    if (b.rank !== null) return 1;
+    return (b.points ?? -1) - (a.points ?? -1);
+  });
+
+  // Keep Hunters and Makers strictly separated — never label a Maker as a Hunter
+  const hunterLeaderboard = buildPersonLeaderboard(latestItems, 'Hunter');
+  const makerLeaderboard = buildPersonLeaderboard(latestItems, 'Maker');
 
   const nextSnapshotInSeconds = lastSchedulerTickAt
     ? Math.max(
@@ -634,14 +685,17 @@ export async function getLeaderboardIntelligence(params: {
     summaryText: latest?.summaryText || '',
     sourceStatus: store.lastError ? 'error' : 'ok',
     sourceError: store.lastError,
+    storageStatus: getIntelligenceStorageStatus(),
     availableCategories: Array.from(categorySet).sort(),
     availablePeriods: Object.keys(store.periods).sort().reverse(),
     entries,
     hunterLeaderboard,
+    makerLeaderboard,
   };
 }
 
 export function getHistoricalSnapshots(params: { date?: string; slug?: string }) {
+  ensureStoreLoaded();
   const periodKey = normalizePeriodKey(params.date);
   const snapshots = store.periods[periodKey] || [];
 
@@ -653,7 +707,11 @@ export function getHistoricalSnapshots(params: { date?: string; slug?: string })
       visiblePoints.length > 0 ? visiblePoints.reduce((s, v) => s + v, 0) : null;
     const avgPoints =
       visiblePoints.length > 0 ? Math.round(totalPoints! / visiblePoints.length) : null;
-    const totalReviews = snap.items.reduce((s, i) => s + (i.reviewsCount ?? 0), 0);
+    const visibleReviews = snap.items
+      .map((i) => i.reviewsCount)
+      .filter((v): v is number => typeof v === 'number');
+    const totalReviews =
+      visibleReviews.length > 0 ? visibleReviews.reduce((s, v) => s + v, 0) : null;
     const targetProduct = params.slug
       ? snap.items.find(
           (i) => i.slug.toLowerCase() === params.slug!.toLowerCase()
@@ -700,6 +758,7 @@ export function getHistoricalSnapshots(params: { date?: string; slug?: string })
   return {
     periodKey,
     snapshotCount: snapshots.length,
+    storageStatus: getIntelligenceStorageStatus(),
     timeline,
     periodSummaries,
     availableProducts:
@@ -764,15 +823,17 @@ export async function getProductPerformanceDetail(slugOrName: string) {
 }
 
 export async function getHunterAnalyticsDetail(nameOrUsername: string) {
+  ensureStoreLoaded();
   const target = nameOrUsername.trim().toLowerCase();
   const matchedProducts = new Map<
     string,
-    SnapshotProductItem & { periodKey: string; role: 'Hunter' | 'Maker' }
+    SnapshotProductItem & { periodKey: string; role: 'Hunter' | 'Maker' | 'Hunter & Maker' }
   >();
   let displayName = nameOrUsername.trim();
   let username: string | null = null;
   let profileUrl: string | null = null;
   let headline: string | null = null;
+  const rolesObservedSet = new Set<'Hunter' | 'Maker'>();
 
   // Scan all captured snapshots across stored dates
   for (const [periodKey, snaps] of Object.entries(store.periods)) {
@@ -795,10 +856,14 @@ export async function getHunterAnalyticsDetail(nameOrUsername: string) {
         if (person.username) username = person.username;
         if (person.url) profileUrl = person.url;
         if (person.headline) headline = person.headline;
+        if (hunterMatch) rolesObservedSet.add('Hunter');
+        if (makerMatch) rolesObservedSet.add('Maker');
+        const role: 'Hunter' | 'Maker' | 'Hunter & Maker' =
+          hunterMatch && makerMatch ? 'Hunter & Maker' : hunterMatch ? 'Hunter' : 'Maker';
         matchedProducts.set(`${periodKey}:${item.slug}`, {
           ...item,
           periodKey,
-          role: hunterMatch ? 'Hunter' : 'Maker',
+          role,
         });
       }
     }
@@ -828,6 +893,7 @@ export async function getHunterAnalyticsDetail(nameOrUsername: string) {
     username,
     profileUrl,
     headline,
+    rolesObserved: Array.from(rolesObservedSet),
     totalObservedLaunches: launches.length,
     totalVisiblePoints:
       visiblePoints.length > 0 ? visiblePoints.reduce((s, v) => s + v, 0) : null,

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LandingPage } from './pages/LandingPage';
@@ -17,21 +18,133 @@ import { IntelligenceView } from './components/IntelligenceView';
 import { ProfileView } from './components/ProfileView';
 import { useWorkspaceData } from './hooks/useWorkspaceData';
 import { useProductHuntMcp } from './hooks/useProductHuntMcp';
+import { resolvedFirebaseStatus } from './firebase';
 import { WorkspaceTab } from './types';
+
+type ViewMode = 'landing' | 'auth' | 'workspace';
+type AuthMode = 'login' | 'signup' | 'forgot';
+
+const VALID_TABS: readonly WorkspaceTab[] = [
+  'dashboard',
+  'academy',
+  'generator',
+  'analyzer',
+  'assistant',
+  'research',
+  'intelligence',
+  'profile',
+];
+
+function parsePathRoute(pathname: string): {
+  viewMode: ViewMode;
+  authMode: AuthMode;
+  activeTab: WorkspaceTab;
+} {
+  const clean = pathname.replace(/\/+$/, '') || '/';
+  if (clean === '/auth/signup') {
+    return { viewMode: 'auth', authMode: 'signup', activeTab: 'dashboard' };
+  }
+  if (clean === '/auth/forgot') {
+    return { viewMode: 'auth', authMode: 'forgot', activeTab: 'dashboard' };
+  }
+  if (clean === '/auth') {
+    return { viewMode: 'auth', authMode: 'login', activeTab: 'dashboard' };
+  }
+  if (clean === '/app' || clean.startsWith('/app/')) {
+    const seg = clean.slice('/app/'.length).split('/')[0] as WorkspaceTab;
+    const tab = VALID_TABS.includes(seg) ? seg : 'dashboard';
+    return { viewMode: 'workspace', authMode: 'login', activeTab: tab };
+  }
+  return { viewMode: 'landing', authMode: 'login', activeTab: 'dashboard' };
+}
+
+function buildRoutePath(viewMode: ViewMode, authMode: AuthMode, activeTab: WorkspaceTab): string {
+  if (viewMode === 'auth') {
+    if (authMode === 'signup') return '/auth/signup';
+    if (authMode === 'forgot') return '/auth/forgot';
+    return '/auth';
+  }
+  if (viewMode === 'workspace') {
+    return `/app/${activeTab}`;
+  }
+  return '/';
+}
 
 function HuntPilotApp() {
   const { user, profile, authReady, signOutUser } = useAuth();
   const isVerifiedAuthenticated = Boolean(user && user.emailVerified);
   const mcp = useProductHuntMcp(isVerifiedAuthenticated);
 
-  const [viewMode, setViewMode] = useState<'landing' | 'auth' | 'workspace'>('landing');
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>('dashboard');
-  const [pendingTab, setPendingTab] = useState<WorkspaceTab | null>(null);
+  const [initialRoute] = useState(() =>
+    typeof window !== 'undefined'
+      ? parsePathRoute(window.location.pathname)
+      : { viewMode: 'landing' as ViewMode, authMode: 'login' as AuthMode, activeTab: 'dashboard' as WorkspaceTab }
+  );
+
+  const [viewMode, setViewMode] = useState<ViewMode>(initialRoute.viewMode);
+  const [authMode, setAuthMode] = useState<AuthMode>(initialRoute.authMode);
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialRoute.activeTab);
+  const [pendingTab, setPendingTab] = useState<WorkspaceTab | null>(
+    initialRoute.viewMode === 'workspace' ? initialRoute.activeTab : null
+  );
   const [activeProjectId, setActiveProjectId] = useState<string>('');
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [pendingResearchImport, setPendingResearchImport] =
     useState<PendingResearchImport | null>(null);
+
+  const syncUrl = useCallback(
+    (nextView: ViewMode, nextAuth: AuthMode, nextTab: WorkspaceTab, replace = false) => {
+      if (typeof window === 'undefined') return;
+      const targetPath = buildRoutePath(nextView, nextAuth, nextTab);
+      if (window.location.pathname !== targetPath) {
+        if (replace) {
+          window.history.replaceState(null, '', targetPath);
+        } else {
+          window.history.pushState(null, '', targetPath);
+        }
+      }
+    },
+    []
+  );
+
+  const navigateToLanding = useCallback(
+    (replace = false) => {
+      setViewMode('landing');
+      syncUrl('landing', authMode, activeTab, replace);
+    },
+    [authMode, activeTab, syncUrl]
+  );
+
+  const navigateToAuth = useCallback(
+    (mode: AuthMode = 'login', targetTab: WorkspaceTab = 'dashboard', replace = false) => {
+      setAuthMode(mode);
+      setPendingTab(targetTab);
+      setViewMode('auth');
+      syncUrl('auth', mode, targetTab, replace);
+    },
+    [syncUrl]
+  );
+
+  const navigateToWorkspaceTab = useCallback(
+    (tab: WorkspaceTab, replace = false) => {
+      setActiveTab(tab);
+      setViewMode('workspace');
+      syncUrl('workspace', authMode, tab, replace);
+    },
+    [authMode, syncUrl]
+  );
+
+  // Sync browser Back / Forward buttons
+  useEffect(() => {
+    const onPopState = () => {
+      const parsed = parsePathRoute(window.location.pathname);
+      setViewMode(parsed.viewMode);
+      setAuthMode(parsed.authMode);
+      setActiveTab(parsed.activeTab);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const {
     projects,
@@ -67,22 +180,26 @@ function HuntPilotApp() {
     deleteIntelligenceItem,
   } = useWorkspaceData(user?.uid, user?.emailVerified);
 
-  // Auto-route verified users into workspace when coming from AuthPage
+  // Auto-route verified users into workspace when coming from AuthPage & guard /app/* when logged out
   useEffect(() => {
     if (!authReady) return;
     if (isVerifiedAuthenticated && viewMode === 'auth') {
-      if (pendingTab) {
-        setActiveTab(pendingTab);
-        setPendingTab(null);
-      } else {
-        setActiveTab('dashboard');
-      }
-      setViewMode('workspace');
+      const target = pendingTab || 'dashboard';
+      setPendingTab(null);
+      navigateToWorkspaceTab(target, true);
     } else if (!user && viewMode === 'workspace') {
-      // Protect dashboard routes if user signed out
-      setViewMode('landing');
+      navigateToAuth('login', activeTab, true);
     }
-  }, [authReady, isVerifiedAuthenticated, user, viewMode, pendingTab]);
+  }, [
+    authReady,
+    isVerifiedAuthenticated,
+    user,
+    viewMode,
+    pendingTab,
+    activeTab,
+    navigateToWorkspaceTab,
+    navigateToAuth,
+  ]);
 
   // Keep activeProjectId synced with available projects
   useEffect(() => {
@@ -92,6 +209,26 @@ function HuntPilotApp() {
       setActiveProjectId('');
     }
   }, [projects, activeProjectId]);
+
+  if (!resolvedFirebaseStatus.configured) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="max-w-lg w-full bg-white border border-red-200 rounded-2xl p-6 space-y-3">
+          <div className="flex items-center gap-2.5 text-red-700 font-bold text-base">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            Firebase Configuration Required
+          </div>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            {resolvedFirebaseStatus.error ||
+              'HuntPilot AI cannot initialize authentication or workspace storage because Firebase configuration is missing.'}
+          </p>
+          <p className="text-xs text-slate-500">
+            Update <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">firebase-applet-config.json</code> with a valid Firebase Web App config and reload the application.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!authReady) {
     return (
@@ -103,11 +240,11 @@ function HuntPilotApp() {
 
   // Protected route guard: if user signed in via email/password and hasn't verified yet, show verification screen
   if (user && !user.emailVerified && (viewMode === 'auth' || viewMode === 'workspace')) {
-    return <AuthPage initialMode="login" onBack={() => setViewMode('landing')} />;
+    return <AuthPage initialMode="login" onBack={() => navigateToLanding()} />;
   }
 
   if (viewMode === 'auth' && !isVerifiedAuthenticated) {
-    return <AuthPage initialMode={authMode} onBack={() => setViewMode('landing')} />;
+    return <AuthPage initialMode={authMode} onBack={() => navigateToLanding()} />;
   }
 
   if (viewMode === 'workspace' && isVerifiedAuthenticated) {
@@ -118,11 +255,11 @@ function HuntPilotApp() {
         activeProjectId={activeProjectId}
         onSelectProject={setActiveProjectId}
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        onBackToLanding={() => setViewMode('landing')}
+        onSelectTab={(tab) => navigateToWorkspaceTab(tab)}
+        onBackToLanding={() => navigateToLanding()}
         onSignOut={async () => {
           await signOutUser();
-          setViewMode('landing');
+          navigateToLanding(true);
         }}
       >
         {activeTab === 'dashboard' && (
@@ -134,7 +271,7 @@ function HuntPilotApp() {
             activities={activities}
             activeProjectId={activeProjectId}
             onSelectProject={setActiveProjectId}
-            onNavigateTab={setActiveTab}
+            onNavigateTab={(tab) => navigateToWorkspaceTab(tab)}
             onCreateProject={createProject}
             onUpdateProject={updateProject}
             onDeleteProject={deleteProject}
@@ -142,7 +279,7 @@ function HuntPilotApp() {
             onOpenReport={(report) => {
               setActiveProjectId(report.projectId);
               setSelectedReportId(report.id);
-              setActiveTab('analyzer');
+              navigateToWorkspaceTab('analyzer');
             }}
             academyProgress={academyProgress}
             mcp={mcp}
@@ -220,7 +357,7 @@ function HuntPilotApp() {
             onDeleteResearch={deleteCompetitorResearch}
             onSendBriefToAnalyzer={(brief) => {
               setPendingResearchImport(brief);
-              setActiveTab('analyzer');
+              navigateToWorkspaceTab('analyzer');
             }}
             mcp={mcp}
           />
@@ -245,19 +382,14 @@ function HuntPilotApp() {
     <LandingPage
       isAuthenticated={isVerifiedAuthenticated}
       onNavigateAuth={(mode = 'login', targetTab = 'dashboard') => {
-        setAuthMode(mode);
-        setPendingTab(targetTab);
-        setViewMode('auth');
+        navigateToAuth(mode, targetTab);
       }}
       onNavigateWorkspace={(tab) => {
         if (!isVerifiedAuthenticated) {
-          setAuthMode('login');
-          setPendingTab(tab);
-          setViewMode('auth');
+          navigateToAuth('login', tab);
           return;
         }
-        setActiveTab(tab);
-        setViewMode('workspace');
+        navigateToWorkspaceTab(tab);
       }}
     />
   );

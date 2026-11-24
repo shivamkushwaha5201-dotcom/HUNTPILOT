@@ -332,6 +332,15 @@ export function ProfileView({ mcp, onSyncPhConnection }: ProfileViewProps) {
                 )}
               </div>
             )}
+            {mcpStatus?.sessionPersistence && (
+              <div className="pt-2 border-t border-slate-200/70 text-[11px] text-slate-500">
+                <span className="font-semibold text-slate-700">Session Storage: </span>
+                {mcpStatus.sessionPersistence.mode === 'encrypted_file'
+                  ? 'Encrypted local server storage (survives restarts)'
+                  : 'In-memory only (resets on restart)'}
+                . {mcpStatus.sessionPersistence.notice}
+              </div>
+            )}
           </div>
         </div>
 

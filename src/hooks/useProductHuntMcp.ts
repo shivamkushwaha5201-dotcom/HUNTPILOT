@@ -36,6 +36,11 @@ export interface McpStatus {
   lastCheckedAt: string | null;
   lastConnectedAt: string | null;
   error: string | null;
+  sessionPersistence?: {
+    persistent: boolean;
+    mode: 'encrypted_file' | 'memory_only';
+    notice: string;
+  };
 }
 
 export interface UseProductHuntMcpResult {

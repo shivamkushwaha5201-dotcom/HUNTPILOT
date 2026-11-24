@@ -69,7 +69,12 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
                 setBusy(true);
                 setNotice(null);
                 try {
-                  await reloadUser();
+                  const verified = await reloadUser();
+                  if (!verified) {
+                    setNotice(
+                      'Your email is not marked verified yet. Please click the link in your inbox (check spam) and try again.'
+                    );
+                  }
                 } finally {
                   setBusy(false);
                 }

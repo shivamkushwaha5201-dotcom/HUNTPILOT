@@ -237,6 +237,13 @@ export interface HunterLeaderboardRow {
   }>;
 }
 
+export interface IntelligenceStorageStatus {
+  mode: 'local_file_ephemeral';
+  survivesProcessRestart: boolean;
+  survivesDeployment: boolean;
+  notice: string;
+}
+
 export interface LeaderboardIntelligenceResponse {
   periodKey: string;
   todayPacific: string;
@@ -251,21 +258,24 @@ export interface LeaderboardIntelligenceResponse {
   summaryText: string;
   sourceStatus: 'ok' | 'error';
   sourceError: string | null;
+  storageStatus: IntelligenceStorageStatus;
   availableCategories: string[];
   availablePeriods: string[];
   entries: EnrichedLeaderboardEntry[];
   hunterLeaderboard: HunterLeaderboardRow[];
+  makerLeaderboard: HunterLeaderboardRow[];
 }
 
 export interface HistoricalSnapshotsResponse {
   periodKey: string;
   snapshotCount: number;
+  storageStatus: IntelligenceStorageStatus;
   timeline: Array<{
     capturedAt: string;
     productCount: number;
     totalPoints: number | null;
     avgPoints: number | null;
-    totalReviews: number;
+    totalReviews: number | null;
     productPoints: number | null;
     productRank: number | null;
     productReviews: number | null;
@@ -302,12 +312,13 @@ export interface HunterAnalyticsResponse {
   username: string | null;
   profileUrl: string | null;
   headline: string | null;
+  rolesObserved: Array<'Hunter' | 'Maker'>;
   totalObservedLaunches: number;
   totalVisiblePoints: number | null;
   avgVisiblePoints: number | null;
   bestRank: number | null;
   topCategories: Array<{ name: string; count: number }>;
-  launches: Array<EnrichedLeaderboardEntry & { periodKey: string; role: 'Hunter' | 'Maker' }>;
+  launches: Array<EnrichedLeaderboardEntry & { periodKey: string; role: 'Hunter' | 'Maker' | 'Hunter & Maker' }>;
 }
 
 export type WorkspaceTab =

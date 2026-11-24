@@ -72,7 +72,7 @@ const FAQS = [
   },
   {
     q: 'How does the Product Hunt MCP integration work?',
-    a: 'HuntPilot AI includes a server-side integration layer for the official Product Hunt Model Context Protocol (MCP). When configured with an official MCP endpoint and token, it discovers live tools exposed by the server to fetch real Product Hunt launch data. Without MCP configured, the research workspace switches to a clearly labeled Strategy Framework mode and never fabricates historical metrics.',
+    a: 'HuntPilot AI connects server-side to the official Product Hunt Model Context Protocol (MCP) endpoint (https://mcp.producthunt.com/mcp) to power live product search, categories, alternatives, and Live Intelligence leaderboards. Connecting your personal Product Hunt account via OAuth 2.1 unlocks personal launch draft syncing and preview workflows. AI generation features additionally require configuring GEMINI_API_KEY on the server.',
   },
   {
     q: 'Can I start using HuntPilot AI for free?',

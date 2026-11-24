@@ -1,13 +1,76 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { doc, getDocFromServer, getFirestore } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
+import { FirebaseApp, initializeApp } from 'firebase/app';
+import { Auth, getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { doc, Firestore, getDocFromServer, getFirestore } from 'firebase/firestore';
+import rawFirebaseConfig from '../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ prompt: 'select_account' });
+export interface FirebaseConfigStatus {
+  configured: boolean;
+  error: string | null;
+  projectId: string | null;
+}
+
+export function validateFirebaseConfig(cfg: Record<string, unknown> | null | undefined): FirebaseConfigStatus {
+  if (!cfg || typeof cfg !== 'object') {
+    return {
+      configured: false,
+      error: 'Missing firebase-applet-config.json configuration.',
+      projectId: null,
+    };
+  }
+
+  const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'] as const;
+  const missing: string[] = [];
+  for (const key of requiredKeys) {
+    const val = typeof cfg[key] === 'string' ? cfg[key].trim() : '';
+    if (!val || val === 'remixed-project-id' || val.startsWith('YOUR_')) {
+      missing.push(key);
+    }
+  }
+
+  if (missing.length > 0) {
+    return {
+      configured: false,
+      error: `Firebase configuration is incomplete or contains placeholders (${missing.join(', ')}). Check firebase-applet-config.json.`,
+      projectId: null,
+    };
+  }
+
+  return {
+    configured: true,
+    error: null,
+    projectId: String(cfg.projectId),
+  };
+}
+
+export const firebaseConfigStatus: FirebaseConfigStatus = validateFirebaseConfig(
+  rawFirebaseConfig as Record<string, unknown>
+);
+
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
+let auth: Auth | null = null;
+let googleProvider: GoogleAuthProvider | null = null;
+let initFailure: string | null = firebaseConfigStatus.error;
+
+if (firebaseConfigStatus.configured) {
+  try {
+    app = initializeApp(rawFirebaseConfig);
+    db = rawFirebaseConfig.firestoreDatabaseId
+      ? getFirestore(app, rawFirebaseConfig.firestoreDatabaseId)
+      : getFirestore(app);
+    auth = getAuth(app);
+    googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+  } catch (err) {
+    initFailure = err instanceof Error ? err.message : 'Failed to initialize Firebase SDK.';
+  }
+}
+
+export const resolvedFirebaseStatus: FirebaseConfigStatus = initFailure
+  ? { configured: false, error: initFailure, projectId: firebaseConfigStatus.projectId }
+  : firebaseConfigStatus;
+
+export { app, db, auth, googleProvider };
 
 export enum OperationType {
   CREATE = 'create',
@@ -40,16 +103,17 @@ export function handleFirestoreError(
   operationType: OperationType,
   path: string | null
 ): never {
+  const currentUser = auth?.currentUser ?? null;
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
+      userId: currentUser?.uid,
+      email: currentUser?.email,
+      emailVerified: currentUser?.emailVerified,
+      isAnonymous: currentUser?.isAnonymous,
+      tenantId: currentUser?.tenantId,
       providerInfo:
-        auth.currentUser?.providerData?.map((provider) => ({
+        currentUser?.providerData?.map((provider) => ({
           providerId: provider.providerId,
           email: provider.email,
         })) || [],
@@ -62,6 +126,7 @@ export function handleFirestoreError(
 }
 
 async function testConnection() {
+  if (!db || !resolvedFirebaseStatus.configured) return;
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
@@ -71,4 +136,6 @@ async function testConnection() {
   }
 }
 
-testConnection();
+if (typeof window !== 'undefined') {
+  void testConnection();
+}
