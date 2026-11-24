@@ -1,0 +1,247 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private founder profile and workspace settings.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "email": { "type": "string", "format": "email", "minLength": 3, "maxLength": 200 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "role": { "type": "string", "maxLength": 80 },
+        "company": { "type": "string", "maxLength": 120 },
+        "experienceLevel": { "type": "string", "enum": ["beginner", "experienced"] },
+        "planTier": { "type": "string", "enum": ["free"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "email", "experienceLevel", "planTier", "createdAt", "updatedAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A founder product being prepared for Product Hunt launch.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "tagline": { "type": "string", "maxLength": 120 },
+        "websiteUrl": { "type": "string", "maxLength": 300 },
+        "category": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "targetAudience": { "type": "string", "maxLength": 500 },
+        "mainProblem": { "type": "string", "maxLength": 1000 },
+        "keyFeatures": { "type": "array" },
+        "usp": { "type": "string", "maxLength": 800 },
+        "description": { "type": "string", "maxLength": 2500 },
+        "stage": { "type": "string", "enum": ["idea", "drafting", "ready", "launched"] },
+        "latestScore": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "name", "category", "stage", "createdAt", "updatedAt"]
+    },
+    "LaunchDraft": {
+      "title": "LaunchDraft",
+      "description": "AI-generated and founder-edited Product Hunt launch asset draft.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "projectId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "versionName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "productName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "taglines": { "type": "array" },
+        "selectedTagline": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 3000 },
+        "makerComment": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "topics": { "type": "array" },
+        "galleryIdeas": { "type": "array" },
+        "demoVideoScript": { "type": "string", "maxLength": 5000 },
+        "launchAnnouncement": { "type": "string", "maxLength": 3000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "projectId", "versionName", "productName", "taglines", "selectedTagline", "description", "makerComment", "topics", "galleryIdeas", "demoVideoScript", "launchAnnouncement", "createdAt", "updatedAt"]
+    },
+    "AnalysisReport": {
+      "title": "AnalysisReport",
+      "description": "Estimated Launch Readiness Score and structured diagnostic feedback.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "projectId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "draftTitle": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "overallScore": { "type": "number" },
+        "categoryScores": { "type": "object" },
+        "strengths": { "type": "array" },
+        "weaknesses": { "type": "array" },
+        "missingInfo": { "type": "array" },
+        "suggestions": { "type": "array" },
+        "nextSteps": { "type": "array" },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "disclaimer": { "type": "string", "minLength": 1, "maxLength": 600 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "projectId", "draftTitle", "overallScore", "categoryScores", "strengths", "weaknesses", "missingInfo", "suggestions", "nextSteps", "summary", "disclaimer", "createdAt"]
+    },
+    "AcademyProgress": {
+      "title": "AcademyProgress",
+      "description": "Per-user Launch Academy lesson and checklist completion state.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "completedLessons": { "type": "array" },
+        "completedChecklistItems": { "type": "array" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "completedLessons", "completedChecklistItems", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Persistent HuntPilot Assistant conversation turn.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "projectId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "content": { "type": "string", "minLength": 1, "maxLength": 8000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "projectId", "role", "content", "createdAt"]
+    },
+    "CompetitorResearch": {
+      "title": "CompetitorResearch",
+      "description": "Saved competitor positioning and historical launch research report.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "projectId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "query": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "category": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "dataSource": { "type": "string", "enum": ["mcp", "ai_framework"] },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 3000 },
+        "differentiationAngles": { "type": "array" },
+        "competitors": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "projectId", "query", "category", "dataSource", "summary", "differentiationAngles", "competitors", "createdAt"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "Founder workspace activity log entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "type": { "type": "string", "enum": ["project", "draft", "analysis", "academy", "research", "assistant", "launch", "intelligence"] },
+        "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "detail": { "type": "string", "maxLength": 400 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "type", "title", "createdAt"]
+    },
+    "PhConnectionStatus": {
+      "title": "PhConnectionStatus",
+      "description": "Non-secret Product Hunt OAuth connection status mirrored for founder dashboard visibility.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "accountConnected": { "type": "boolean" },
+        "username": { "type": "string", "maxLength": 120 },
+        "name": { "type": "string", "maxLength": 120 },
+        "profileUrl": { "type": "string", "maxLength": 500 },
+        "lastConnectedAt": { "type": "string", "maxLength": 80 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "accountConnected", "updatedAt"]
+    },
+    "LaunchSchedule": {
+      "title": "LaunchSchedule",
+      "description": "Tracked Product Hunt launch schedule and live status tied to a founder project.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "projectId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "phLaunchId": { "type": "string", "maxLength": 128 },
+        "productName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "launchDate": { "type": "string", "maxLength": 20 },
+        "status": { "type": "string", "enum": ["draft", "scheduled", "live", "unscheduled"] },
+        "liveUrl": { "type": "string", "maxLength": 500 },
+        "notes": { "type": "string", "maxLength": 600 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "projectId", "productName", "status", "createdAt", "updatedAt"]
+    },
+    "SavedIntelligence": {
+      "title": "SavedIntelligence",
+      "description": "Founder-bookmarked Product Hunt intelligence targets (products, hunters, or snapshot benchmarks).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "kind": { "type": "string", "enum": ["product", "hunter", "snapshot"] },
+        "slugOrKey": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "subtitle": { "type": "string", "maxLength": 300 },
+        "periodKey": { "type": "string", "maxLength": 30 },
+        "notes": { "type": "string", "maxLength": 600 },
+        "url": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerId", "kind", "slugOrKey", "title", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile and private settings, strictly accessible only by the owning user."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Founder launch projects owned by a single user."
+    },
+    "/launchDrafts/{draftId}": {
+      "schema": { "$ref": "#/entities/LaunchDraft" },
+      "description": "Launch drafts linked to a user's project."
+    },
+    "/analysisReports/{reportId}": {
+      "schema": { "$ref": "#/entities/AnalysisReport" },
+      "description": "Estimated Launch Readiness Score reports linked to a user's project."
+    },
+    "/academyProgress/{userId}": {
+      "schema": { "$ref": "#/entities/AcademyProgress" },
+      "description": "Launch Academy lesson and checklist progress per user."
+    },
+    "/chatMessages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "HuntPilot Assistant conversation history per user and project."
+    },
+    "/competitorResearch/{researchId}": {
+      "schema": { "$ref": "#/entities/CompetitorResearch" },
+      "description": "Saved competitor research reports per user."
+    },
+    "/activities/{activityId}": {
+      "schema": { "$ref": "#/entities/Activity" },
+      "description": "Recent workspace activity events per user."
+    },
+    "/phConnections/{userId}": {
+      "schema": { "$ref": "#/entities/PhConnectionStatus" },
+      "description": "Non-secret Product Hunt integration status per user."
+    },
+    "/launchSchedules/{scheduleId}": {
+      "schema": { "$ref": "#/entities/LaunchSchedule" },
+      "description": "Tracked Product Hunt launch schedules and live URLs per user."
+    },
+    "/savedIntelligence/{itemId}": {
+      "schema": { "$ref": "#/entities/SavedIntelligence" },
+      "description": "Saved Product Hunt product/hunter/snapshot bookmarks per user."
+    }
+  }
+}

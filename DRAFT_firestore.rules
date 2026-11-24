@@ -1,0 +1,408 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidBoundedStringArray(arr, maxItems) {
+      return arr is list && arr.size() <= maxItems && (arr.size() == 0 || arr[0] is string);
+    }
+
+    function isValidCompetitorArray(arr, maxItems) {
+      return arr is list && arr.size() <= maxItems && (arr.size() == 0 || arr[0] is map);
+    }
+
+    // --- Validation Blueprints ---
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'experienceLevel', 'planTier', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'email', 'photoURL', 'role', 'company', 'experienceLevel', 'planTier', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && isValidString(data.displayName, 1, 120)
+        && isValidString(data.email, 3, 200)
+        && (!('photoURL' in data) || isValidString(data.photoURL, 0, 500))
+        && (!('role' in data) || isValidString(data.role, 0, 80))
+        && (!('company' in data) || isValidString(data.company, 0, 120))
+        && data.experienceLevel in ['beginner', 'experienced']
+        && data.planTier == 'free'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidProject(data, projectId) {
+      return data.keys().hasAll(['id', 'ownerId', 'name', 'category', 'stage', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'name', 'tagline', 'websiteUrl', 'category', 'targetAudience', 'mainProblem', 'keyFeatures', 'usp', 'description', 'stage', 'latestScore', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.id == projectId
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isValidString(data.name, 1, 120)
+        && (!('tagline' in data) || isValidString(data.tagline, 0, 120))
+        && (!('websiteUrl' in data) || isValidString(data.websiteUrl, 0, 300))
+        && isValidString(data.category, 1, 80)
+        && (!('targetAudience' in data) || isValidString(data.targetAudience, 0, 500))
+        && (!('mainProblem' in data) || isValidString(data.mainProblem, 0, 1000))
+        && (!('keyFeatures' in data) || isValidBoundedStringArray(data.keyFeatures, 10))
+        && (!('usp' in data) || isValidString(data.usp, 0, 800))
+        && (!('description' in data) || isValidString(data.description, 0, 2500))
+        && data.stage in ['idea', 'drafting', 'ready', 'launched']
+        && (!('latestScore' in data) || (data.latestScore is number && data.latestScore >= 0 && data.latestScore <= 100))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLaunchDraft(data, draftId) {
+      return data.keys().hasAll(['id', 'ownerId', 'projectId', 'versionName', 'productName', 'taglines', 'selectedTagline', 'description', 'makerComment', 'topics', 'galleryIdeas', 'demoVideoScript', 'launchAnnouncement', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'projectId', 'versionName', 'productName', 'taglines', 'selectedTagline', 'description', 'makerComment', 'topics', 'galleryIdeas', 'demoVideoScript', 'launchAnnouncement', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.id == draftId
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isValidId(data.projectId)
+        && isValidString(data.versionName, 1, 80)
+        && isValidString(data.productName, 1, 120)
+        && isValidBoundedStringArray(data.taglines, 10)
+        && isValidString(data.selectedTagline, 1, 120)
+        && isValidString(data.description, 1, 3000)
+        && isValidString(data.makerComment, 1, 4000)
+        && isValidBoundedStringArray(data.topics, 10)
+        && isValidBoundedStringArray(data.galleryIdeas, 10)
+        && isValidString(data.demoVideoScript, 0, 5000)
+        && isValidString(data.launchAnnouncement, 0, 3000)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCategoryScores(scores) {
+      return scores is map
+        && scores.keys().hasAll(['taglineClarity', 'descriptionQuality', 'positioning', 'uspStrength', 'audienceClarity', 'visualAssets', 'competitorDiff', 'launchPrep'])
+        && scores.keys().hasOnly(['taglineClarity', 'descriptionQuality', 'positioning', 'uspStrength', 'audienceClarity', 'visualAssets', 'competitorDiff', 'launchPrep'])
+        && scores.taglineClarity is number && scores.taglineClarity >= 0 && scores.taglineClarity <= 100
+        && scores.descriptionQuality is number && scores.descriptionQuality >= 0 && scores.descriptionQuality <= 100
+        && scores.positioning is number && scores.positioning >= 0 && scores.positioning <= 100
+        && scores.uspStrength is number && scores.uspStrength >= 0 && scores.uspStrength <= 100
+        && scores.audienceClarity is number && scores.audienceClarity >= 0 && scores.audienceClarity <= 100
+        && scores.visualAssets is number && scores.visualAssets >= 0 && scores.visualAssets <= 100
+        && scores.competitorDiff is number && scores.competitorDiff >= 0 && scores.competitorDiff <= 100
+        && scores.launchPrep is number && scores.launchPrep >= 0 && scores.launchPrep <= 100;
+    }
+
+    function isValidAnalysisReport(data, reportId) {
+      return data.keys().hasAll(['id', 'ownerId', 'projectId', 'draftTitle', 'overallScore', 'categoryScores', 'strengths', 'weaknesses', 'missingInfo', 'suggestions', 'nextSteps', 'summary', 'disclaimer', 'createdAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'projectId', 'draftTitle', 'overallScore', 'categoryScores', 'strengths', 'weaknesses', 'missingInfo', 'suggestions', 'nextSteps', 'summary', 'disclaimer', 'createdAt'])
+        && isValidId(data.id)
+        && data.id == reportId
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isValidId(data.projectId)
+        && isValidString(data.draftTitle, 1, 120)
+        && data.overallScore is number && data.overallScore >= 0 && data.overallScore <= 100
+        && isValidCategoryScores(data.categoryScores)
+        && isValidBoundedStringArray(data.strengths, 12)
+        && isValidBoundedStringArray(data.weaknesses, 12)
+        && isValidBoundedStringArray(data.missingInfo, 12)
+        && isValidBoundedStringArray(data.suggestions, 12)
+        && isValidBoundedStringArray(data.nextSteps, 12)
+        && isValidString(data.summary, 1, 2000)
+        && isValidString(data.disclaimer, 1, 600)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidAcademyProgress(data, userId) {
+      return data.keys().hasAll(['ownerId', 'completedLessons', 'completedChecklistItems', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'completedLessons', 'completedChecklistItems', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == userId
+        && data.ownerId == request.auth.uid
+        && isValidBoundedStringArray(data.completedLessons, 60)
+        && isValidBoundedStringArray(data.completedChecklistItems, 80)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidChatMessage(data, messageId) {
+      return data.keys().hasAll(['id', 'ownerId', 'projectId', 'role', 'content', 'createdAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'projectId', 'role', 'content', 'createdAt'])
+        && isValidId(data.id)
+        && data.id == messageId
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isValidId(data.projectId)
+        && data.role in ['user', 'assistant']
+        && isValidString(data.content, 1, 8000)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCompetitorResearch(data, researchId) {
+      return data.keys().hasAll(['id', 'ownerId', 'projectId', 'query', 'category', 'dataSource', 'summary', 'differentiationAngles', 'competitors', 'createdAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'projectId', 'query', 'category', 'dataSource', 'summary', 'differentiationAngles', 'competitors', 'createdAt'])
+        && isValidId(data.id)
+        && data.id == researchId
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isValidId(data.projectId)
+        && isValidString(data.query, 1, 200)
+        && isValidString(data.category, 1, 80)
+        && data.dataSource in ['mcp', 'ai_framework']
+        && isValidString(data.summary, 1, 3000)
+        && isValidBoundedStringArray(data.differentiationAngles, 10)
+        && isValidCompetitorArray(data.competitors, 10)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidActivity(data, activityId) {
+      return data.keys().hasAll(['id', 'ownerId', 'type', 'title', 'createdAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'type', 'title', 'detail', 'projectId', 'createdAt'])
+        && isValidId(data.id)
+        && data.id == activityId
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && data.type in ['project', 'draft', 'analysis', 'academy', 'research', 'assistant', 'launch', 'intelligence']
+        && isValidString(data.title, 1, 160)
+        && (!('detail' in data) || isValidString(data.detail, 0, 400))
+        && (!('projectId' in data) || isValidString(data.projectId, 0, 128))
+        && data.createdAt is timestamp;
+    }
+
+    function isValidPhConnection(data, userId) {
+      return data.keys().hasAll(['ownerId', 'accountConnected', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'accountConnected', 'username', 'name', 'profileUrl', 'lastConnectedAt', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == userId
+        && data.ownerId == request.auth.uid
+        && data.accountConnected is bool
+        && (!('username' in data) || isValidString(data.username, 0, 120))
+        && (!('name' in data) || isValidString(data.name, 0, 120))
+        && (!('profileUrl' in data) || isValidString(data.profileUrl, 0, 500))
+        && (!('lastConnectedAt' in data) || isValidString(data.lastConnectedAt, 0, 80))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLaunchSchedule(data, scheduleId) {
+      return data.keys().hasAll(['id', 'ownerId', 'projectId', 'productName', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'projectId', 'phLaunchId', 'productName', 'launchDate', 'status', 'liveUrl', 'notes', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.id == scheduleId
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isValidId(data.projectId)
+        && (!('phLaunchId' in data) || isValidString(data.phLaunchId, 0, 128))
+        && isValidString(data.productName, 1, 120)
+        && (!('launchDate' in data) || isValidString(data.launchDate, 0, 20))
+        && data.status in ['draft', 'scheduled', 'live', 'unscheduled']
+        && (!('liveUrl' in data) || isValidString(data.liveUrl, 0, 500))
+        && (!('notes' in data) || isValidString(data.notes, 0, 600))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSavedIntelligence(data, itemId) {
+      return data.keys().hasAll(['id', 'ownerId', 'kind', 'slugOrKey', 'title', 'createdAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'kind', 'slugOrKey', 'title', 'subtitle', 'periodKey', 'notes', 'url', 'createdAt'])
+        && isValidId(data.id)
+        && data.id == itemId
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && data.kind in ['product', 'hunter', 'snapshot']
+        && isValidString(data.slugOrKey, 1, 160)
+        && isValidString(data.title, 1, 160)
+        && (!('subtitle' in data) || isValidString(data.subtitle, 0, 300))
+        && (!('periodKey' in data) || isValidString(data.periodKey, 0, 30))
+        && (!('notes' in data) || isValidString(data.notes, 0, 600))
+        && (!('url' in data) || isValidString(data.url, 0, 500))
+        && data.createdAt is timestamp;
+    }
+
+    function ownsProject(projectId) {
+      return exists(/databases/$(database)/documents/projects/$(projectId))
+        && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid;
+    }
+
+    // --- Collection Rules ---
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId) && isVerifiedUser() && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) && isVerifiedUser() && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'role', 'company', 'experienceLevel', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /projects/{projectId} {
+      allow get: if isValidId(projectId) && isSignedIn() && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isValidId(projectId) && isVerifiedUser()
+        && isValidProject(incoming(), projectId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(projectId) && isVerifiedUser() && existing().ownerId == request.auth.uid
+        && isValidProject(incoming(), projectId)
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'tagline', 'websiteUrl', 'category', 'targetAudience', 'mainProblem', 'keyFeatures', 'usp', 'description', 'stage', 'updatedAt'])
+          || incoming().diff(existing()).affectedKeys().hasOnly(['latestScore', 'stage', 'updatedAt'])
+        );
+      allow delete: if isValidId(projectId) && isVerifiedUser() && existing().ownerId == request.auth.uid;
+    }
+
+    match /launchDrafts/{draftId} {
+      allow get: if isValidId(draftId) && isSignedIn() && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isValidId(draftId) && isVerifiedUser()
+        && isValidLaunchDraft(incoming(), draftId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && ownsProject(incoming().projectId);
+      allow update: if isValidId(draftId) && isVerifiedUser() && existing().ownerId == request.auth.uid
+        && isValidLaunchDraft(incoming(), draftId)
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && incoming().projectId == existing().projectId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['versionName', 'productName', 'taglines', 'selectedTagline', 'description', 'makerComment', 'topics', 'galleryIdeas', 'demoVideoScript', 'launchAnnouncement', 'updatedAt']);
+      allow delete: if isValidId(draftId) && isVerifiedUser() && existing().ownerId == request.auth.uid;
+    }
+
+    match /analysisReports/{reportId} {
+      allow get: if isValidId(reportId) && isSignedIn() && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isValidId(reportId) && isVerifiedUser()
+        && isValidAnalysisReport(incoming(), reportId)
+        && incoming().createdAt == request.time
+        && ownsProject(incoming().projectId);
+      allow update: if false;
+      allow delete: if isValidId(reportId) && isVerifiedUser() && existing().ownerId == request.auth.uid;
+    }
+
+    match /academyProgress/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId) && isVerifiedUser() && isOwner(userId)
+        && isValidAcademyProgress(incoming(), userId)
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) && isVerifiedUser() && isOwner(userId)
+        && isValidAcademyProgress(incoming(), userId)
+        && incoming().ownerId == existing().ownerId
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['completedLessons', 'completedChecklistItems', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /chatMessages/{messageId} {
+      allow get: if isValidId(messageId) && isSignedIn() && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isValidId(messageId) && isVerifiedUser()
+        && isValidChatMessage(incoming(), messageId)
+        && incoming().createdAt == request.time
+        && (incoming().projectId == 'general' || ownsProject(incoming().projectId));
+      allow update: if false;
+      allow delete: if isValidId(messageId) && isVerifiedUser() && existing().ownerId == request.auth.uid;
+    }
+
+    match /competitorResearch/{researchId} {
+      allow get: if isValidId(researchId) && isSignedIn() && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isValidId(researchId) && isVerifiedUser()
+        && isValidCompetitorResearch(incoming(), researchId)
+        && incoming().createdAt == request.time
+        && (incoming().projectId == 'general' || ownsProject(incoming().projectId));
+      allow update: if false;
+      allow delete: if isValidId(researchId) && isVerifiedUser() && existing().ownerId == request.auth.uid;
+    }
+
+    match /activities/{activityId} {
+      allow get: if isValidId(activityId) && isSignedIn() && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isValidId(activityId) && isVerifiedUser()
+        && isValidActivity(incoming(), activityId)
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(activityId) && isVerifiedUser() && existing().ownerId == request.auth.uid;
+    }
+
+    match /phConnections/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId) && isVerifiedUser() && isOwner(userId)
+        && isValidPhConnection(incoming(), userId)
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) && isVerifiedUser() && isOwner(userId)
+        && isValidPhConnection(incoming(), userId)
+        && incoming().ownerId == existing().ownerId
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['accountConnected', 'username', 'name', 'profileUrl', 'lastConnectedAt', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /launchSchedules/{scheduleId} {
+      allow get: if isValidId(scheduleId) && isSignedIn() && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isValidId(scheduleId) && isVerifiedUser()
+        && isValidLaunchSchedule(incoming(), scheduleId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (incoming().projectId == 'general' || ownsProject(incoming().projectId));
+      allow update: if isValidId(scheduleId) && isVerifiedUser() && existing().ownerId == request.auth.uid
+        && isValidLaunchSchedule(incoming(), scheduleId)
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && incoming().projectId == existing().projectId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['phLaunchId', 'productName', 'launchDate', 'status', 'liveUrl', 'notes', 'updatedAt']);
+      allow delete: if isValidId(scheduleId) && isVerifiedUser() && existing().ownerId == request.auth.uid;
+    }
+
+    match /savedIntelligence/{itemId} {
+      allow get: if isValidId(itemId) && isSignedIn() && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isValidId(itemId) && isVerifiedUser()
+        && isValidSavedIntelligence(incoming(), itemId)
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(itemId) && isVerifiedUser() && existing().ownerId == request.auth.uid;
+    }
+  }
+}

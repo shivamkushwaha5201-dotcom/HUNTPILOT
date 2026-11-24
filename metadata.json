@@ -1,0 +1,6 @@
+{
+  "name": "HuntPilot AI",
+  "description": "Your AI-Powered Product Hunt Launch Partner. Prepare, draft, analyze, and optimize your Product Hunt launches with Launch Academy, AI Draft Generator, Launch Analyzer, and Competitor Research.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
