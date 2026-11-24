@@ -57,16 +57,20 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function mapFirebaseAuthError(err: unknown): string {
+export function mapFirebaseAuthError(err: unknown): string {
   const code =
     typeof err === 'object' && err !== null && 'code' in err
       ? String((err as { code: unknown }).code)
       : '';
 
   switch (code) {
+    case 'auth/unauthorized-domain': {
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+      return `Domain "${host}" is not authorized for Firebase sign-in. Add "${host}" under Firebase Console -> Authentication -> Settings -> Authorized domains.`;
+    }
     case 'auth/operation-not-allowed':
     case 'auth/admin-restricted-operation':
-      return 'Email/Password sign-in is not yet enabled in Firebase Console (Authentication -> Sign-in method -> Email/Password). Please use Continue with Google or enable Email/Password in Firebase Console.';
+      return 'This sign-in method is not enabled in Firebase Console (Authentication -> Sign-in method). Enable Email/Password and/or Google sign-in in your Firebase project.';
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
@@ -77,8 +81,13 @@ function mapFirebaseAuthError(err: unknown): string {
       return 'Password must be at least 6 characters long.';
     case 'auth/invalid-email':
       return 'Please enter a valid email address.';
+    case 'auth/popup-blocked':
+      return 'Sign-in popup was blocked by your browser. Please allow popups for this site and try again.';
     case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
       return 'Sign-in window was closed before completing authentication.';
+    case 'auth/network-request-failed':
+      return 'Network error while contacting Firebase Authentication. Check your connection and try again.';
     case 'auth/too-many-requests':
       return 'Too many attempts. Please wait a moment and try again.';
     default:
@@ -91,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [authReady, setAuthReady] = useState(!resolvedFirebaseStatus.configured);
   const [authError, setAuthError] = useState<string | null>(resolvedFirebaseStatus.error);
-  const [, setAuthVersion] = useState(0);
+  const [authVersion, setAuthVersion] = useState(0);
 
   useEffect(() => {
     if (!auth || !resolvedFirebaseStatus.configured) {
@@ -109,34 +118,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!authReady || !user || !db) {
+    if (!authReady || !user || !user.emailVerified || !db) {
+      if (!user || !user.emailVerified) {
+        setProfile(null);
+      }
       return;
     }
 
     const firestore = db;
-    const userRef = doc(firestore, 'users', user.uid);
+    const verifiedUser = user;
+    const userRef = doc(firestore, 'users', verifiedUser.uid);
     let cancelled = false;
 
     async function ensureUserProfile() {
-      if (!user || !user.emailVerified) return;
       try {
         const snap = await getDoc(userRef);
         if (!snap.exists() && !cancelled) {
+          const pendingExp =
+            typeof window !== 'undefined' ? sessionStorage.getItem('hp_pending_exp') : null;
           const payload: Record<string, unknown> = {
-            uid: user.uid,
+            uid: verifiedUser.uid,
             displayName:
-              clampString(user.displayName || user.email?.split('@')[0] || 'Founder', LIMITS.displayName) ||
-              'Founder',
-            email: clampString(user.email || '', LIMITS.email),
-            experienceLevel: 'beginner',
+              clampString(
+                verifiedUser.displayName || verifiedUser.email?.split('@')[0] || 'Founder',
+                LIMITS.displayName
+              ) || 'Founder',
+            email: clampString(verifiedUser.email || '', LIMITS.email),
+            experienceLevel: pendingExp === 'experienced' ? 'experienced' : 'beginner',
             planTier: 'free',
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           };
-          if (user.photoURL) {
-            payload.photoURL = clampString(user.photoURL, LIMITS.photoURL);
+          if (verifiedUser.photoURL) {
+            payload.photoURL = clampString(verifiedUser.photoURL, LIMITS.photoURL);
           }
           await setDoc(userRef, payload);
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('hp_pending_exp');
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -169,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
       unsubProfile();
     };
-  }, [authReady, user]);
+  }, [authReady, user, user?.emailVerified, authVersion]);
 
   const clearAuthError = () => setAuthError(null);
 
@@ -217,10 +236,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const firebaseAuth = requireConfiguredAuth();
     try {
       const cred = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('hp_pending_exp', experienceLevel);
+      }
       const cleanName = clampString(name, LIMITS.displayName) || 'Founder';
       await updateProfile(cred.user, { displayName: cleanName });
       await sendEmailVerification(cred.user);
-      sessionStorage.setItem('hp_pending_exp', experienceLevel);
     } catch (err) {
       const msg = mapFirebaseAuthError(err);
       setAuthError(msg);
@@ -255,27 +276,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const reloadUser = async (): Promise<boolean> => {
     if (!auth?.currentUser) return false;
-    await auth.currentUser.reload();
-    setUser(auth.currentUser);
-    setAuthVersion((v) => v + 1);
-    if (auth.currentUser.emailVerified && db) {
-      const pendingExp = sessionStorage.getItem('hp_pending_exp');
-      const userRef = doc(db, 'users', auth.currentUser.uid);
-      const snap = await getDoc(userRef);
-      if (!snap.exists()) {
-        await setDoc(userRef, {
-          uid: auth.currentUser.uid,
-          displayName: clampString(auth.currentUser.displayName || 'Founder', LIMITS.displayName) || 'Founder',
-          email: clampString(auth.currentUser.email || '', LIMITS.email),
-          experienceLevel: pendingExp === 'experienced' ? 'experienced' : 'beginner',
-          planTier: 'free',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
+    setAuthError(null);
+    try {
+      await auth.currentUser.reload();
+      if (auth.currentUser.emailVerified) {
+        await auth.currentUser.getIdToken(true);
       }
-      sessionStorage.removeItem('hp_pending_exp');
+      setUser(auth.currentUser);
+      setAuthVersion((v) => v + 1);
+      return Boolean(auth.currentUser.emailVerified);
+    } catch (err) {
+      const msg = mapFirebaseAuthError(err);
+      setAuthError(msg);
+      throw new Error(msg);
     }
-    return Boolean(auth.currentUser.emailVerified);
   };
 
   const signOutUser = async () => {

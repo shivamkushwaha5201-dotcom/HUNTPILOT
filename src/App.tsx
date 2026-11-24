@@ -258,8 +258,8 @@ function HuntPilotApp() {
         onSelectTab={(tab) => navigateToWorkspaceTab(tab)}
         onBackToLanding={() => navigateToLanding()}
         onSignOut={async () => {
-          await signOutUser();
           navigateToLanding(true);
+          await signOutUser();
         }}
       >
         {activeTab === 'dashboard' && (

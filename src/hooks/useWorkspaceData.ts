@@ -87,10 +87,10 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
 
     const firestore = db;
     setDataLoading(true);
-    let settledCount = 0;
-    const markSettled = () => {
-      settledCount += 1;
-      if (settledCount >= 6) {
+    const settledKeys = new Set<string>();
+    const markSettled = (key: string) => {
+      settledKeys.add(key);
+      if (settledKeys.size >= 6) {
         setDataLoading(false);
       }
     };
@@ -99,7 +99,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       query(collection(firestore, 'projects'), where('ownerId', '==', userId)),
       (snap) => {
         setProjects(sortByCreatedDesc(snap.docs.map((d) => d.data() as Project)));
-        markSettled();
+        markSettled('projects');
       },
       (err) => handleFirestoreError(err, OperationType.LIST, 'projects')
     );
@@ -108,7 +108,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       query(collection(firestore, 'launchDrafts'), where('ownerId', '==', userId)),
       (snap) => {
         setDrafts(sortByCreatedDesc(snap.docs.map((d) => d.data() as LaunchDraft)));
-        markSettled();
+        markSettled('launchDrafts');
       },
       (err) => handleFirestoreError(err, OperationType.LIST, 'launchDrafts')
     );
@@ -117,7 +117,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       query(collection(firestore, 'analysisReports'), where('ownerId', '==', userId)),
       (snap) => {
         setReports(sortByCreatedDesc(snap.docs.map((d) => d.data() as AnalysisReport)));
-        markSettled();
+        markSettled('analysisReports');
       },
       (err) => handleFirestoreError(err, OperationType.LIST, 'analysisReports')
     );
@@ -135,7 +135,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
             updatedAt: null,
           });
         }
-        markSettled();
+        markSettled('academyProgress');
       },
       (err) => handleFirestoreError(err, OperationType.GET, `academyProgress/${userId}`)
     );
@@ -144,7 +144,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       query(collection(firestore, 'chatMessages'), where('ownerId', '==', userId)),
       (snap) => {
         setChatMessages(sortByCreatedAsc(snap.docs.map((d) => d.data() as ChatMessage)));
-        markSettled();
+        markSettled('chatMessages');
       },
       (err) => handleFirestoreError(err, OperationType.LIST, 'chatMessages')
     );
@@ -153,7 +153,7 @@ export function useWorkspaceData(userId: string | undefined, emailVerified: bool
       query(collection(firestore, 'competitorResearch'), where('ownerId', '==', userId)),
       (snap) => {
         setResearchReports(sortByCreatedDesc(snap.docs.map((d) => d.data() as CompetitorResearch)));
-        markSettled();
+        markSettled('competitorResearch');
       },
       (err) => handleFirestoreError(err, OperationType.LIST, 'competitorResearch')
     );

@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import fs from 'fs';
+import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeApp, getApps, getApp } from 'firebase-admin/app';
@@ -350,6 +351,7 @@ function handleApiError(res: express.Response, err: unknown) {
 export interface CreateAppOptions {
   enableVite?: boolean;
   verifyTokenFn?: VerifyTokenFn | null;
+  httpServer?: http.Server;
 }
 
 export async function createApp(options: CreateAppOptions = {}): Promise<express.Express> {
@@ -1337,7 +1339,10 @@ export async function createApp(options: CreateAppOptions = {}): Promise<express
   if (enableVite) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        ...(options.httpServer ? { ws: { server: options.httpServer } } : {}),
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -1353,9 +1358,11 @@ export async function createApp(options: CreateAppOptions = {}): Promise<express
 }
 
 async function startServer() {
-  const app = await createApp();
+  const httpServer = http.createServer();
+  const app = await createApp({ httpServer });
+  httpServer.on('request', app);
   const PORT = 3000;
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     const oauthPersistence = getOAuthPersistenceStatus();
     console.log(
       `HuntPilot AI server listening on http://0.0.0.0:${PORT} | Firebase: ${

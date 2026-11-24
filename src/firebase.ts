@@ -1,6 +1,18 @@
-import { FirebaseApp, initializeApp } from 'firebase/app';
-import { Auth, getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { doc, Firestore, getDocFromServer, getFirestore } from 'firebase/firestore';
+import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
+import {
+  Auth,
+  browserLocalPersistence,
+  getAuth,
+  GoogleAuthProvider,
+  setPersistence,
+} from 'firebase/auth';
+import {
+  doc,
+  Firestore,
+  getDocFromServer,
+  getFirestore,
+  initializeFirestore,
+} from 'firebase/firestore';
 import rawFirebaseConfig from '../firebase-applet-config.json';
 
 export interface FirebaseConfigStatus {
@@ -52,13 +64,32 @@ let auth: Auth | null = null;
 let googleProvider: GoogleAuthProvider | null = null;
 let initFailure: string | null = firebaseConfigStatus.error;
 
+function initFirestoreClient(firebaseApp: FirebaseApp, databaseId?: string): Firestore {
+  const dbId = databaseId && databaseId.trim() ? databaseId.trim() : undefined;
+  if (typeof window !== 'undefined') {
+    try {
+      return initializeFirestore(
+        firebaseApp,
+        { experimentalForceLongPolling: true },
+        dbId
+      );
+    } catch {
+      return dbId ? getFirestore(firebaseApp, dbId) : getFirestore(firebaseApp);
+    }
+  }
+  return dbId ? getFirestore(firebaseApp, dbId) : getFirestore(firebaseApp);
+}
+
 if (firebaseConfigStatus.configured) {
   try {
-    app = initializeApp(rawFirebaseConfig);
-    db = rawFirebaseConfig.firestoreDatabaseId
-      ? getFirestore(app, rawFirebaseConfig.firestoreDatabaseId)
-      : getFirestore(app);
+    app = getApps().length > 0 ? getApp() : initializeApp(rawFirebaseConfig);
+    db = initFirestoreClient(app, rawFirebaseConfig.firestoreDatabaseId);
     auth = getAuth(app);
+    if (typeof window !== 'undefined') {
+      void setPersistence(auth, browserLocalPersistence).catch(() => {
+        // Fallback to Firebase SDK default persistence if browser storage is restricted
+      });
+    }
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({ prompt: 'select_account' });
   } catch (err) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Mail, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ExperienceLevel } from '../types';
@@ -29,6 +29,10 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('beginner');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   const switchMode = (next: 'login' | 'signup' | 'forgot') => {
     clearAuthError();
@@ -75,6 +79,8 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
                       'Your email is not marked verified yet. Please click the link in your inbox (check spam) and try again.'
                     );
                   }
+                } catch {
+                  // handled in AuthContext authError
                 } finally {
                   setBusy(false);
                 }
@@ -93,6 +99,8 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
                 try {
                   await resendVerification();
                   setNotice('Verification email sent. Please check your inbox and spam folder.');
+                } catch {
+                  // handled in AuthContext authError
                 } finally {
                   setBusy(false);
                 }

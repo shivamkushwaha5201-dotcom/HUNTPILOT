@@ -9,6 +9,7 @@ import {
   isValidHttpUrl,
 } from '../src/utils/validation.ts';
 import { validateFirebaseConfig } from '../src/firebase.ts';
+import { mapFirebaseAuthError } from '../src/context/AuthContext.tsx';
 
 test('validation helpers clamp strings, arrays, and scores safely', () => {
   assert.equal(clampString('   hello world   ', 5), 'hello');
@@ -64,4 +65,24 @@ test('validateFirebaseConfig detects missing or placeholder config without throw
   assert.equal(valid.configured, true);
   assert.equal(valid.error, null);
   assert.equal(valid.projectId, 'demo-proj');
+});
+
+test('mapFirebaseAuthError returns actionable messages for domain, provider, popup, and network errors', () => {
+  const unauthDomain = mapFirebaseAuthError({ code: 'auth/unauthorized-domain' });
+  assert.match(unauthDomain, /Authorized domains/i);
+
+  const disabledProvider = mapFirebaseAuthError({ code: 'auth/operation-not-allowed' });
+  assert.match(disabledProvider, /Sign-in method/i);
+
+  const adminRestricted = mapFirebaseAuthError({ code: 'auth/admin-restricted-operation' });
+  assert.match(adminRestricted, /Sign-in method/i);
+
+  const popupBlocked = mapFirebaseAuthError({ code: 'auth/popup-blocked' });
+  assert.match(popupBlocked, /popup was blocked/i);
+
+  const networkError = mapFirebaseAuthError({ code: 'auth/network-request-failed' });
+  assert.match(networkError, /Network error/i);
+
+  const badCreds = mapFirebaseAuthError({ code: 'auth/invalid-credential' });
+  assert.match(badCreds, /Invalid email or password/i);
 });
