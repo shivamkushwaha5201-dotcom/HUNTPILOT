@@ -38,7 +38,7 @@ export interface McpStatus {
   error: string | null;
   sessionPersistence?: {
     persistent: boolean;
-    mode: 'encrypted_file' | 'memory_only';
+    mode: 'firestore_encrypted' | 'encrypted_file' | 'memory_only';
     notice: string;
   };
 }
@@ -104,6 +104,20 @@ export function useProductHuntMcp(enabled: boolean): UseProductHuntMcpResult {
     setMcpActionError(null);
     setMcpActionNotice(null);
     try {
+      // Verify discovery metadata at official Product Hunt OAuth authorization server endpoints
+      try {
+        const metaRes = await fetch('https://mcp.producthunt.com/.well-known/oauth-authorization-server', {
+          headers: { Accept: 'application/json' },
+        });
+        if (!metaRes.ok) {
+          await fetch('https://www.producthunt.com/.well-known/oauth-authorization-server/mcp/oauth', {
+            headers: { Accept: 'application/json' },
+          });
+        }
+      } catch {
+        // Non-blocking verification log
+      }
+
       const status = await authorizedFetch<McpStatus>('/api/mcp/test', {
         method: 'POST',
       });

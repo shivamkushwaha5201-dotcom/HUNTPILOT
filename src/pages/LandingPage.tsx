@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import {
   ArrowRight,
   BookOpen,
@@ -11,10 +12,14 @@ import {
   Search,
   Sparkles,
 } from 'lucide-react';
+import { HuntPilotLogo, PhVoteBox } from '../components/ui/PhPrimitives';
 
 interface LandingPageProps {
   isAuthenticated: boolean;
-  onNavigateAuth: (mode?: 'login' | 'signup', targetTab?: 'analyzer' | 'academy' | 'dashboard') => void;
+  onNavigateAuth: (
+    mode?: 'login' | 'signup',
+    targetTab?: 'analyzer' | 'academy' | 'dashboard'
+  ) => void;
   onNavigateWorkspace: (tab: 'dashboard' | 'academy' | 'analyzer') => void;
 }
 
@@ -88,7 +93,7 @@ function FounderAvatar({ src, alt, initials }: { src: string; alt: string; initi
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
-      <div className="w-11 h-11 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-semibold shrink-0">
+      <div className="w-11 h-11 rounded-full bg-[#FFF1F0] border border-[#FFD6D2] text-[#FF6154] flex items-center justify-center text-xs font-bold shrink-0">
         {initials}
       </div>
     );
@@ -99,7 +104,7 @@ function FounderAvatar({ src, alt, initials }: { src: string; alt: string; initi
       alt={alt}
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
-      className="w-11 h-11 rounded-full object-cover border border-slate-200 shrink-0"
+      className="w-11 h-11 rounded-full object-cover border border-[#EAEAEA] shrink-0"
     />
   );
 }
@@ -129,28 +134,37 @@ export function LandingPage({
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#0F172A]">
+    <div className="min-h-screen bg-white text-[#202020]">
       {/* 3-Zone Top Bar Contract */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200">
+      <header className="sticky top-0 z-40 bg-white border-b border-[#EAEAEA]">
         <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between gap-8">
-          <a
-            href="#top"
-            className="text-lg font-bold tracking-tight text-[#0F172A] whitespace-nowrap shrink-0"
-          >
-            HuntPilot AI
+          <a href="#top" className="shrink-0">
+            <HuntPilotLogo />
           </a>
 
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
-            <a href="#features" className="hover:text-[#0F172A] transition-colors whitespace-nowrap shrink-0">
+          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#555555]">
+            <a
+              href="#features"
+              className="hover:text-[#FF6154] transition-colors whitespace-nowrap shrink-0"
+            >
               Features
             </a>
-            <a href="#how-it-works" className="hover:text-[#0F172A] transition-colors whitespace-nowrap shrink-0">
+            <a
+              href="#how-it-works"
+              className="hover:text-[#FF6154] transition-colors whitespace-nowrap shrink-0"
+            >
               How It Works
             </a>
-            <a href="#pricing" className="hover:text-[#0F172A] transition-colors whitespace-nowrap shrink-0">
+            <a
+              href="#pricing"
+              className="hover:text-[#FF6154] transition-colors whitespace-nowrap shrink-0"
+            >
               Pricing
             </a>
-            <a href="#faq" className="hover:text-[#0F172A] transition-colors whitespace-nowrap shrink-0">
+            <a
+              href="#faq"
+              className="hover:text-[#FF6154] transition-colors whitespace-nowrap shrink-0"
+            >
               FAQ
             </a>
           </nav>
@@ -160,7 +174,7 @@ export function LandingPage({
               <button
                 type="button"
                 onClick={() => onNavigateWorkspace('dashboard')}
-                className="px-4 py-2 text-sm font-semibold text-white bg-[#6D28D9] hover:bg-[#5B21B6] rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-4 py-2 text-sm font-semibold text-white bg-[#FF6154] hover:bg-[#E54B3E] rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
                 Open Workspace
               </button>
@@ -168,7 +182,7 @@ export function LandingPage({
               <button
                 type="button"
                 onClick={() => onNavigateAuth('login', 'dashboard')}
-                className="px-4 py-2 text-sm font-semibold text-white bg-[#0F172A] hover:bg-slate-800 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-4 py-2 text-sm font-semibold text-white bg-[#FF6154] hover:bg-[#E54B3E] rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
                 Sign In
               </button>
@@ -178,30 +192,35 @@ export function LandingPage({
       </header>
 
       {/* Hero Section */}
-      <section id="top" className="pt-16 pb-20 lg:pt-24 lg:pb-28 border-b border-slate-100">
+      <section id="top" className="pt-14 pb-20 lg:pt-20 lg:pb-24 bg-white border-b border-[#EAEAEA]">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            <div className="lg:col-span-6">
-              <p className="text-sm font-medium text-[#6D28D9] mb-4">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="lg:col-span-6"
+            >
+              <p className="text-sm font-semibold text-[#FF6154] mb-3.5">
                 Your AI-Powered Product Hunt Launch Partner
               </p>
               <h1
-                className="font-bold text-[#0F172A] tracking-tight leading-[1.08] mb-6"
-                style={{ fontSize: 'clamp(2.25rem, 4vw, 3.6rem)', textWrap: 'balance' }}
+                className="font-bold text-[#202020] tracking-tight leading-[1.08] mb-5"
+                style={{ fontSize: 'clamp(2.25rem, 4vw, 3.5rem)', textWrap: 'balance' }}
               >
                 Launch on Product Hunt with Confidence
               </h1>
-              <p className="text-base lg:text-lg text-slate-600 leading-relaxed mb-8 max-w-xl">
+              <p className="text-base lg:text-[17px] text-[#555555] leading-relaxed mb-8 max-w-xl">
                 Whether you are launching your very first product or sharpening a flagship v2,
                 HuntPilot AI gives you step-by-step launch education, structured draft generation,
-                readiness diagnostics, and competitor positioning in one focused workspace.
+                readiness diagnostics, and live ecosystem intelligence in one focused workspace.
               </p>
 
-              <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3.5">
                 <button
                   type="button"
                   onClick={handlePrimaryCta}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-sm font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-[0_1px_2px_rgba(255,97,84,0.2)]"
                 >
                   Analyze My Launch
                   <ArrowRight className="w-4 h-4" />
@@ -209,88 +228,91 @@ export function LandingPage({
                 <button
                   type="button"
                   onClick={handleAcademyCta}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[#0F172A] text-sm font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] hover:border-[#D4D4D4] text-[#202020] text-sm font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   Explore Launch Academy
                 </button>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-200 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+              <div className="mt-8 pt-6 border-t border-[#EAEAEA] flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[#777777]">
                 <span>6-Chapter Beginner Academy</span>
                 <span aria-hidden="true">·</span>
                 <span>Estimated Readiness Scoring</span>
                 <span aria-hidden="true">·</span>
+                <span>Live MCP Leaderboards</span>
+                <span aria-hidden="true">·</span>
                 <span>Free Plan Available</span>
               </div>
-            </div>
+            </motion.div>
 
-            {/* Interactive Product Dashboard Preview */}
-            <div className="lg:col-span-6">
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-200">
+            {/* Interactive Product Hunt-Style Workspace Preview */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.28, delay: 0.06, ease: 'easeOut' }}
+              className="lg:col-span-6"
+            >
+              <div className="bg-[#F7F7F7] border border-[#EAEAEA] rounded-2xl p-5 sm:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#EAEAEA]">
                   <div>
-                    <p className="text-xs font-medium text-slate-500">Interactive Workspace Preview</p>
-                    <p className="text-sm font-semibold text-[#0F172A] mt-0.5">
-                      Sample Project: PulseBoard Analytics
+                    <p className="text-xs font-medium text-[#777777]">Interactive Workspace Preview</p>
+                    <p className="text-sm font-bold text-[#202020] mt-0.5">
+                      Sample Launch: PulseBoard Analytics
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 p-1 bg-white border border-slate-200 rounded-lg">
-                    <button
-                      type="button"
-                      onClick={() => setPreviewTab('readiness')}
-                      className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer ${
-                        previewTab === 'readiness'
-                          ? 'bg-[#0F172A] text-white'
-                          : 'text-slate-600 hover:text-[#0F172A]'
-                      }`}
-                    >
-                      Analyzer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewTab('draft')}
-                      className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer ${
-                        previewTab === 'draft'
-                          ? 'bg-[#0F172A] text-white'
-                          : 'text-slate-600 hover:text-[#0F172A]'
-                      }`}
-                    >
-                      Drafts
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewTab('academy')}
-                      className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer ${
-                        previewTab === 'academy'
-                          ? 'bg-[#0F172A] text-white'
-                          : 'text-slate-600 hover:text-[#0F172A]'
-                      }`}
-                    >
-                      Academy
-                    </button>
+                  <div className="flex items-center gap-1 p-1 bg-white border border-[#EAEAEA] rounded-lg">
+                    {(
+                      [
+                        { id: 'readiness', label: 'Analyzer' },
+                        { id: 'draft', label: 'Drafts' },
+                        { id: 'academy', label: 'Academy' },
+                      ] as const
+                    ).map((tab) => {
+                      const active = previewTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setPreviewTab(tab.id)}
+                          className={`relative px-3 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap cursor-pointer ${
+                            active ? 'text-white' : 'text-[#555555] hover:text-[#202020]'
+                          }`}
+                        >
+                          {active && (
+                            <motion.span
+                              layoutId="landing-preview-tab"
+                              transition={{ type: 'spring', stiffness: 450, damping: 34 }}
+                              className="absolute inset-0 bg-[#FF6154] rounded-md"
+                            />
+                          )}
+                          <span className="relative z-10">{tab.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
                 {previewTab === 'readiness' && (
-                  <div className="pt-5 space-y-5">
-                    <div className="bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between gap-6">
-                      <div>
-                        <p className="text-xs font-medium text-slate-500">
-                          Estimated Launch Readiness Score
-                        </p>
-                        <div className="flex items-baseline gap-2 mt-1">
-                          <span className="text-4xl font-bold text-[#0F172A] tabular-nums font-mono">
-                            84
-                          </span>
-                          <span className="text-sm text-slate-500 tabular-nums">/ 100</span>
+                  <div className="pt-5 space-y-4">
+                    {/* PH-style Product Card Row */}
+                    <div className="bg-white border border-[#EAEAEA] rounded-xl p-5 flex items-center justify-between gap-5">
+                      <div className="flex items-start gap-3.5 min-w-0">
+                        <div className="w-12 h-12 rounded-xl bg-[#FFF1F0] border border-[#FFD6D2] text-[#FF6154] font-bold text-lg flex items-center justify-center shrink-0">
+                          P
                         </div>
-                        <p className="text-xs text-slate-600 mt-2">
-                          Strong tagline clarity · Maker story ready · Needs 2 more gallery slides
-                        </p>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold text-[#FF6154] mb-0.5">
+                            Estimated Launch Readiness Score
+                          </p>
+                          <p className="text-base font-bold text-[#202020] truncate">
+                            PulseBoard Analytics
+                          </p>
+                          <p className="text-xs text-[#666666] mt-1">
+                            Strong tagline · Maker story ready · Add 2 gallery slides
+                          </p>
+                        </div>
                       </div>
-                      <div className="w-16 h-16 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-center shrink-0">
-                        <Gauge className="w-8 h-8 text-[#6D28D9]" />
-                      </div>
+                      <PhVoteBox points={84} active />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -300,16 +322,19 @@ export function LandingPage({
                         { label: 'Audience Fit', score: 82 },
                         { label: 'Visual Assets', score: 74 },
                       ].map((metric) => (
-                        <div key={metric.label} className="bg-white border border-slate-200 rounded-xl p-3.5">
+                        <div
+                          key={metric.label}
+                          className="bg-white border border-[#EAEAEA] rounded-xl p-3.5"
+                        >
                           <div className="flex items-center justify-between text-xs mb-2">
-                            <span className="text-slate-600 font-medium">{metric.label}</span>
-                            <span className="font-mono font-semibold text-[#0F172A] tabular-nums">
+                            <span className="text-[#555555] font-medium">{metric.label}</span>
+                            <span className="font-mono font-bold text-[#202020] tabular-nums">
                               {metric.score}%
                             </span>
                           </div>
-                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-1.5 bg-[#F3F3F3] rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-[#6D28D9] rounded-full"
+                              className="h-full bg-[#FF6154] rounded-full transition-all duration-300"
                               style={{ width: `${metric.score}%` }}
                             />
                           </div>
@@ -317,36 +342,44 @@ export function LandingPage({
                       ))}
                     </div>
 
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                      Estimated readiness reflects draft quality and preparation completeness—not featuring probability.
+                    <p className="text-[11px] text-[#777777] leading-relaxed">
+                      Estimated readiness reflects draft clarity and preparation completeness—not featuring probability.
                     </p>
                   </div>
                 )}
 
                 {previewTab === 'draft' && (
-                  <div className="pt-5 space-y-4">
-                    <div className="bg-white border border-slate-200 rounded-xl p-4">
-                      <p className="text-xs font-medium text-[#6D28D9] mb-1">Generated Tagline Option 1 of 5</p>
-                      <p className="text-sm font-semibold text-[#0F172A]">
+                  <div className="pt-5 space-y-3.5">
+                    <div className="bg-white border border-[#EAEAEA] rounded-xl p-4">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-xs font-semibold text-[#FF6154]">
+                          Generated Tagline Option 1 of 5
+                        </p>
+                        <span className="text-[11px] font-mono text-[#777777] tabular-nums">
+                          59 / 60 chars
+                        </span>
+                      </div>
+                      <p className="text-sm font-bold text-[#202020]">
                         Turn customer support tickets into weekly product roadmaps
                       </p>
-                      <p className="text-xs text-slate-500 mt-1 tabular-nums">59 / 60 characters</p>
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-xl p-4">
-                      <p className="text-xs font-medium text-[#EA580C] mb-1">First Maker Comment Preview</p>
-                      <p className="text-xs text-slate-600 leading-relaxed">
+                    <div className="bg-white border border-[#EAEAEA] rounded-xl p-4">
+                      <p className="text-xs font-semibold text-[#202020] mb-1">
+                        First Maker Comment Preview
+                      </p>
+                      <p className="text-xs text-[#555555] leading-relaxed">
                         “Hey Product Hunt! After spending every Friday manually tagging Intercom threads in spreadsheets, we built PulseBoard to group feature requests automatically...”
                       </p>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-                      <span>Includes 60s demo script &amp; gallery plan</span>
-                      <span className="font-medium text-[#0F172A]">Version v2 saved</span>
+                    <div className="flex items-center justify-between text-xs text-[#777777] px-1">
+                      <span>Includes 60s demo script &amp; gallery storyboard</span>
+                      <span className="font-semibold text-[#202020]">Version v2 saved</span>
                     </div>
                   </div>
                 )}
 
                 {previewTab === 'academy' && (
-                  <div className="pt-5 space-y-3">
+                  <div className="pt-5 space-y-2.5">
                     {[
                       { ch: 'Chapter 1', title: 'Understanding Product Hunt', status: '5 lessons · Completed' },
                       { ch: 'Chapter 2', title: 'Preparing Your Product', status: '5 lessons · In progress' },
@@ -355,100 +388,96 @@ export function LandingPage({
                     ].map((item) => (
                       <div
                         key={item.ch}
-                        className="bg-white border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between gap-4"
+                        className="bg-white border border-[#EAEAEA] rounded-xl px-4 py-3 flex items-center justify-between gap-4"
                       >
                         <div>
-                          <p className="text-xs text-slate-500">{item.ch}</p>
-                          <p className="text-sm font-semibold text-[#0F172A]">{item.title}</p>
+                          <p className="text-[11px] font-semibold text-[#FF6154]">{item.ch}</p>
+                          <p className="text-sm font-bold text-[#202020]">{item.title}</p>
                         </div>
-                        <span className="text-xs text-slate-600 whitespace-nowrap">{item.status}</span>
+                        <span className="text-xs text-[#777777] whitespace-nowrap">{item.status}</span>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Features Bento Grid */}
-      <section id="features" className="py-20 bg-slate-50 border-b border-slate-200">
+      <section id="features" className="py-20 bg-[#F7F7F7] border-b border-[#EAEAEA]">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="max-w-2xl mb-12">
-            <p className="text-sm font-medium text-[#6D28D9] mb-2">Platform Capabilities</p>
-            <h2 className="text-3xl font-bold text-[#0F172A] tracking-tight mb-4">
+            <p className="text-sm font-semibold text-[#FF6154] mb-2">Platform Capabilities</p>
+            <h2 className="text-3xl font-bold text-[#202020] tracking-tight mb-3">
               Everything required to go from raw idea to launch-ready page
             </h2>
-            <p className="text-slate-600 leading-relaxed">
-              Built for first-time founders learning the ropes and experienced makers iterating toward a sharper launch.
+            <p className="text-[#555555] leading-relaxed">
+              Built for first-time makers learning the ropes and experienced founders iterating toward a sharper launch.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-6 gap-5">
-            <div className="md:col-span-3 bg-white border border-slate-200 rounded-2xl p-7">
-              <div className="w-10 h-10 rounded-lg bg-violet-50 text-[#6D28D9] flex items-center justify-center mb-5">
+            <div className="md:col-span-3 bg-white border border-[#EAEAEA] hover:border-[#D4D4D4] transition-colors rounded-xl p-7">
+              <div className="w-10 h-10 rounded-lg bg-[#FFF1F0] border border-[#FFD6D2] text-[#FF6154] flex items-center justify-center mb-5">
                 <BookOpen className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-semibold text-[#0F172A] mb-2">
+              <h3 className="text-lg font-bold text-[#202020] mb-2">
                 Product Hunt Launch Academy
               </h3>
-              <p className="text-sm text-slate-600 leading-relaxed mb-4">
+              <p className="text-sm text-[#555555] leading-relaxed mb-4">
                 Six beginner-friendly chapters covering how Product Hunt works, positioning, asset specs, pre-launch outreach, launch-day execution, and post-launch follow-ups—complete with Do’s, Don’ts, and interactive checklists.
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#777777]">
                 32 lessons · 18 checklist items · Persistent progress tracking
               </p>
             </div>
 
-            <div className="md:col-span-3 bg-white border border-slate-200 rounded-2xl p-7">
-              <div className="w-10 h-10 rounded-lg bg-orange-50 text-[#EA580C] flex items-center justify-center mb-5">
+            <div className="md:col-span-3 bg-white border border-[#EAEAEA] hover:border-[#D4D4D4] transition-colors rounded-xl p-7">
+              <div className="w-10 h-10 rounded-lg bg-[#FFF1F0] border border-[#FFD6D2] text-[#FF6154] flex items-center justify-center mb-5">
                 <Sparkles className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-semibold text-[#0F172A] mb-2">
+              <h3 className="text-lg font-bold text-[#202020] mb-2">
                 AI Launch Draft Generator
               </h3>
-              <p className="text-sm text-slate-600 leading-relaxed mb-4">
+              <p className="text-sm text-[#555555] leading-relaxed mb-4">
                 Turn product notes into 5 tagline options, a crisp description, an authentic First Maker Comment, suggested topics, gallery slide concepts, a 60-second demo script, and social announcements—then edit, save, and compare versions.
               </p>
-              <p className="text-xs text-slate-500">
-                Section regeneration · Version comparison · One-click copy
+              <p className="text-xs text-[#777777]">
+                Section regeneration · Version comparison · Product Hunt MCP sync
               </p>
             </div>
 
-            <div className="md:col-span-2 bg-white border border-slate-200 rounded-2xl p-7">
-              <div className="w-10 h-10 rounded-lg bg-slate-100 text-[#0F172A] flex items-center justify-center mb-5">
+            <div className="md:col-span-2 bg-white border border-[#EAEAEA] hover:border-[#D4D4D4] transition-colors rounded-xl p-7">
+              <div className="w-10 h-10 rounded-lg bg-[#F3F3F3] text-[#202020] flex items-center justify-center mb-5">
                 <Gauge className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-semibold text-[#0F172A] mb-2">
-                AI Launch Analyzer
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
+              <h3 className="text-lg font-bold text-[#202020] mb-2">AI Launch Analyzer</h3>
+              <p className="text-sm text-[#555555] leading-relaxed">
                 Evaluate your draft across 8 criteria to uncover missing info, weak positioning, and concrete fixes—with an honest Estimated Launch Readiness Score.
               </p>
             </div>
 
-            <div className="md:col-span-2 bg-white border border-slate-200 rounded-2xl p-7">
-              <div className="w-10 h-10 rounded-lg bg-violet-50 text-[#6D28D9] flex items-center justify-center mb-5">
+            <div className="md:col-span-2 bg-white border border-[#EAEAEA] hover:border-[#D4D4D4] transition-colors rounded-xl p-7">
+              <div className="w-10 h-10 rounded-lg bg-[#F3F3F3] text-[#202020] flex items-center justify-center mb-5">
                 <MessageSquare className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-semibold text-[#0F172A] mb-2">
-                HuntPilot Assistant
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
+              <h3 className="text-lg font-bold text-[#202020] mb-2">HuntPilot Assistant</h3>
+              <p className="text-sm text-[#555555] leading-relaxed">
                 An AI launch strategist that remembers your active project context to rewrite taglines, refine maker comments, and answer beginner questions.
               </p>
             </div>
 
-            <div className="md:col-span-2 bg-white border border-slate-200 rounded-2xl p-7">
-              <div className="w-10 h-10 rounded-lg bg-orange-50 text-[#EA580C] flex items-center justify-center mb-5">
+            <div className="md:col-span-2 bg-white border border-[#EAEAEA] hover:border-[#D4D4D4] transition-colors rounded-xl p-7">
+              <div className="w-10 h-10 rounded-lg bg-[#FFF1F0] border border-[#FFD6D2] text-[#FF6154] flex items-center justify-center mb-5">
                 <Search className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-semibold text-[#0F172A] mb-2">
-                Competitor Research &amp; MCP
+              <h3 className="text-lg font-bold text-[#202020] mb-2">
+                Live Intelligence &amp; MCP
               </h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                Map differentiation angles and connect to the official Product Hunt MCP server when configured to pull live launch data into your research.
+              <p className="text-sm text-[#555555] leading-relaxed">
+                Track live Product Hunt leaderboards, velocity, pulse scores, hunters, and direct competitor comparisons powered by the official Product Hunt MCP server.
               </p>
             </div>
           </div>
@@ -456,11 +485,11 @@ export function LandingPage({
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 border-b border-slate-200">
+      <section id="how-it-works" className="py-20 bg-white border-b border-[#EAEAEA]">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="max-w-2xl mb-12">
-            <p className="text-sm font-medium text-[#EA580C] mb-2">How It Works</p>
-            <h2 className="text-3xl font-bold text-[#0F172A] tracking-tight">
+            <p className="text-sm font-semibold text-[#FF6154] mb-2">How It Works</p>
+            <h2 className="text-3xl font-bold text-[#202020] tracking-tight">
               A structured four-step path to launch day
             </h2>
           </div>
@@ -488,16 +517,16 @@ export function LandingPage({
               {
                 step: '04',
                 title: 'Differentiate & Ship',
-                body: 'Validate competitor positioning, finalize your pre-launch checklist, and use HuntPilot Assistant for launch-day replies.',
+                body: 'Validate competitor positioning, study live leaderboards, and use HuntPilot Assistant for launch-day replies.',
                 icon: Sparkles,
               },
             ].map((item) => (
-              <div key={item.step} className="pt-4 border-t border-slate-200">
-                <span className="font-mono text-xs font-semibold text-[#6D28D9] tabular-nums">
+              <div key={item.step} className="pt-5 border-t border-[#EAEAEA]">
+                <span className="font-mono text-xs font-bold text-[#FF6154] tabular-nums">
                   {item.step}.
                 </span>
-                <h3 className="text-base font-semibold text-[#0F172A] mt-3 mb-2">{item.title}</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{item.body}</p>
+                <h3 className="text-base font-bold text-[#202020] mt-3 mb-2">{item.title}</h3>
+                <p className="text-sm text-[#555555] leading-relaxed">{item.body}</p>
               </div>
             ))}
           </div>
@@ -505,18 +534,18 @@ export function LandingPage({
       </section>
 
       {/* Sample Testimonials */}
-      <section className="py-20 bg-slate-50 border-b border-slate-200">
+      <section className="py-20 bg-[#F7F7F7] border-b border-[#EAEAEA]">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12">
             <div>
-              <p className="text-sm font-medium text-[#6D28D9] mb-2">
+              <p className="text-sm font-semibold text-[#FF6154] mb-2">
                 Sample Founder Stories (Illustrative Examples)
               </p>
-              <h2 className="text-3xl font-bold text-[#0F172A] tracking-tight">
+              <h2 className="text-3xl font-bold text-[#202020] tracking-tight">
                 How makers prepare stronger launches
               </h2>
             </div>
-            <p className="text-xs text-slate-500 max-w-xs">
+            <p className="text-xs text-[#777777] max-w-xs">
               These sample testimonials illustrate typical founder workflows and are labeled as sample examples.
             </p>
           </div>
@@ -525,19 +554,19 @@ export function LandingPage({
             {SAMPLE_TESTIMONIALS.map((t) => (
               <article
                 key={t.name}
-                className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between"
+                className="bg-white border border-[#EAEAEA] rounded-xl p-6 flex flex-col justify-between"
               >
                 <div>
-                  <p className="text-sm text-slate-700 leading-relaxed mb-5">“{t.quote}”</p>
-                  <p className="text-xs font-medium text-[#0F172A] mb-6 pt-4 border-t border-slate-100">
+                  <p className="text-sm text-[#444444] leading-relaxed mb-5">“{t.quote}”</p>
+                  <p className="text-xs font-medium text-[#202020] mb-6 pt-4 border-t border-[#F0F0F0]">
                     Outcome: {t.outcome}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <FounderAvatar src={t.avatar} alt={`${t.name} portrait`} initials={t.initials} />
                   <div>
-                    <p className="text-sm font-semibold text-[#0F172A]">{t.name}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-sm font-bold text-[#202020]">{t.name}</p>
+                    <p className="text-xs text-[#777777]">
                       {t.role} · {t.company}
                     </p>
                   </div>
@@ -549,41 +578,41 @@ export function LandingPage({
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-20 border-b border-slate-200">
+      <section id="pricing" className="py-20 bg-white border-b border-[#EAEAEA]">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="max-w-2xl mb-12">
-            <p className="text-sm font-medium text-[#EA580C] mb-2">Pricing</p>
-            <h2 className="text-3xl font-bold text-[#0F172A] tracking-tight mb-3">
+            <p className="text-sm font-semibold text-[#FF6154] mb-2">Pricing</p>
+            <h2 className="text-3xl font-bold text-[#202020] tracking-tight mb-3">
               Start free while preparing your launch
             </h2>
-            <p className="text-slate-600">
+            <p className="text-[#555555]">
               HuntPilot AI is currently live with the Free plan. Paid Pro and Agency tiers are prepared on our roadmap with payments disabled during early access.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Free */}
-            <div className="bg-white border-2 border-[#6D28D9] rounded-2xl p-7 flex flex-col justify-between">
+            <div className="bg-white border-2 border-[#FF6154] rounded-2xl p-7 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <h3 className="text-lg font-bold text-[#0F172A]">Free</h3>
-                  <span className="text-xs font-semibold text-[#6D28D9]">Active Now</span>
+                  <h3 className="text-lg font-bold text-[#202020]">Free</h3>
+                  <span className="text-xs font-semibold text-[#FF6154]">Active Now</span>
                 </div>
-                <p className="text-xs text-slate-500 mb-4">For first-time makers &amp; indie founders</p>
+                <p className="text-xs text-[#777777] mb-4">For first-time makers &amp; indie founders</p>
                 <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-bold text-[#0F172A] tabular-nums">$0</span>
-                  <span className="text-sm text-slate-500">/ month</span>
+                  <span className="text-4xl font-bold text-[#202020] tabular-nums">$0</span>
+                  <span className="text-sm text-[#777777]">/ month</span>
                 </div>
-                <ul className="space-y-3 text-sm text-slate-600 mb-8">
+                <ul className="space-y-3 text-sm text-[#555555] mb-8">
                   {[
                     'Complete 6-chapter Launch Academy',
                     'AI Draft Generator with version saving',
                     'Launch Analyzer with 8-category breakdown',
                     'HuntPilot Assistant with project context',
-                    'Competitor Research & MCP readiness',
+                    'Live Intelligence & Product Hunt MCP explorer',
                   ].map((feat) => (
                     <li key={feat} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-[#6D28D9] shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-[#FF6154] shrink-0 mt-0.5" />
                       <span>{feat}</span>
                     </li>
                   ))}
@@ -592,25 +621,25 @@ export function LandingPage({
               <button
                 type="button"
                 onClick={handlePrimaryCta}
-                className="w-full py-2.5 px-4 rounded-lg bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-sm font-semibold transition-colors cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-sm font-semibold transition-colors cursor-pointer"
               >
                 Start Free Workspace
               </button>
             </div>
 
             {/* Pro */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-7 flex flex-col justify-between">
+            <div className="bg-[#F7F7F7] border border-[#EAEAEA] rounded-2xl p-7 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <h3 className="text-lg font-bold text-[#0F172A]">Pro</h3>
-                  <span className="text-xs font-medium text-slate-500">Coming Soon</span>
+                  <h3 className="text-lg font-bold text-[#202020]">Pro</h3>
+                  <span className="text-xs font-medium text-[#777777]">Coming Soon</span>
                 </div>
-                <p className="text-xs text-slate-500 mb-4">For repeat founders &amp; SaaS teams</p>
+                <p className="text-xs text-[#777777] mb-4">For repeat founders &amp; SaaS teams</p>
                 <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-bold text-[#0F172A] tabular-nums">$29</span>
-                  <span className="text-sm text-slate-500">/ month (planned)</span>
+                  <span className="text-4xl font-bold text-[#202020] tabular-nums">$29</span>
+                  <span className="text-sm text-[#777777]">/ month (planned)</span>
                 </div>
-                <ul className="space-y-3 text-sm text-slate-600 mb-8">
+                <ul className="space-y-3 text-sm text-[#555555] mb-8">
                   {[
                     'Higher monthly AI generation limits',
                     'Deep multi-draft comparative scoring',
@@ -618,7 +647,7 @@ export function LandingPage({
                     'Unlimited saved product launch workspaces',
                   ].map((feat) => (
                     <li key={feat} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-[#777777] shrink-0 mt-0.5" />
                       <span>{feat}</span>
                     </li>
                   ))}
@@ -627,25 +656,25 @@ export function LandingPage({
               <button
                 type="button"
                 disabled
-                className="w-full py-2.5 px-4 rounded-lg border border-slate-300 bg-white text-slate-400 text-sm font-medium cursor-not-allowed"
+                className="w-full py-2.5 px-4 rounded-lg border border-[#EAEAEA] bg-white text-[#999999] text-sm font-medium cursor-not-allowed"
               >
                 Billing Not Active Yet
               </button>
             </div>
 
             {/* Agency */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-7 flex flex-col justify-between">
+            <div className="bg-[#F7F7F7] border border-[#EAEAEA] rounded-2xl p-7 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <h3 className="text-lg font-bold text-[#0F172A]">Agency</h3>
-                  <span className="text-xs font-medium text-slate-500">Coming Soon</span>
+                  <h3 className="text-lg font-bold text-[#202020]">Agency</h3>
+                  <span className="text-xs font-medium text-[#777777]">Coming Soon</span>
                 </div>
-                <p className="text-xs text-slate-500 mb-4">For launch studios &amp; venture teams</p>
+                <p className="text-xs text-[#777777] mb-4">For launch studios &amp; venture teams</p>
                 <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-bold text-[#0F172A] tabular-nums">$99</span>
-                  <span className="text-sm text-slate-500">/ month (planned)</span>
+                  <span className="text-4xl font-bold text-[#202020] tabular-nums">$99</span>
+                  <span className="text-sm text-[#777777]">/ month (planned)</span>
                 </div>
-                <ul className="space-y-3 text-sm text-slate-600 mb-8">
+                <ul className="space-y-3 text-sm text-[#555555] mb-8">
                   {[
                     'Multi-client launch portfolios',
                     'Exportable client readiness reports',
@@ -653,7 +682,7 @@ export function LandingPage({
                     'Dedicated client management workspace',
                   ].map((feat) => (
                     <li key={feat} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-[#777777] shrink-0 mt-0.5" />
                       <span>{feat}</span>
                     </li>
                   ))}
@@ -662,7 +691,7 @@ export function LandingPage({
               <button
                 type="button"
                 disabled
-                className="w-full py-2.5 px-4 rounded-lg border border-slate-300 bg-white text-slate-400 text-sm font-medium cursor-not-allowed"
+                className="w-full py-2.5 px-4 rounded-lg border border-[#EAEAEA] bg-white text-[#999999] text-sm font-medium cursor-not-allowed"
               >
                 Billing Not Active Yet
               </button>
@@ -672,16 +701,16 @@ export function LandingPage({
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-20 bg-slate-50 border-b border-slate-200">
+      <section id="faq" className="py-20 bg-[#F7F7F7] border-b border-[#EAEAEA]">
         <div className="max-w-[900px] mx-auto px-6">
           <div className="mb-10">
-            <p className="text-sm font-medium text-[#6D28D9] mb-2">FAQ</p>
-            <h2 className="text-3xl font-bold text-[#0F172A] tracking-tight">
+            <p className="text-sm font-semibold text-[#FF6154] mb-2">FAQ</p>
+            <h2 className="text-3xl font-bold text-[#202020] tracking-tight">
               Common questions from founders
             </h2>
           </div>
 
-          <div className="divide-y divide-slate-200 border border-slate-200 rounded-2xl bg-white overflow-hidden">
+          <div className="divide-y divide-[#EAEAEA] border border-[#EAEAEA] rounded-2xl bg-white overflow-hidden">
             {FAQS.map((item, idx) => {
               const isOpen = openFaq === idx;
               return (
@@ -689,22 +718,36 @@ export function LandingPage({
                   <button
                     type="button"
                     onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="w-full px-6 py-5 text-left flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors cursor-pointer"
+                    className="w-full px-6 py-5 text-left flex items-center justify-between gap-4 hover:bg-[#FAFAFA] transition-colors cursor-pointer"
                   >
-                    <span className="text-sm sm:text-base font-semibold text-[#0F172A]">
+                    <span
+                      className={`text-sm sm:text-base font-semibold ${
+                        isOpen ? 'text-[#FF6154]' : 'text-[#202020]'
+                      }`}
+                    >
                       {item.q}
                     </span>
                     <ChevronDown
-                      className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-150 ${
-                        isOpen ? 'rotate-180' : ''
+                      className={`w-4 h-4 shrink-0 transition-transform duration-150 ${
+                        isOpen ? 'rotate-180 text-[#FF6154]' : 'text-[#777777]'
                       }`}
                     />
                   </button>
-                  {isOpen && (
-                    <div className="px-6 pb-5 text-sm text-slate-600 leading-relaxed">
-                      {item.a}
-                    </div>
-                  )}
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.16, ease: 'easeOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-6 pb-5 text-sm text-[#555555] leading-relaxed">
+                          {item.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })}
@@ -715,17 +758,25 @@ export function LandingPage({
       {/* Quiet Footer */}
       <footer className="py-12 bg-white">
         <div className="max-w-[1200px] mx-auto px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-          <div>
-            <p className="text-base font-bold text-[#0F172A]">HuntPilot AI</p>
-            <p className="text-xs text-slate-500 mt-1">
+          <div className="space-y-2">
+            <HuntPilotLogo size="sm" />
+            <p className="text-xs text-[#777777]">
               Your AI-Powered Product Hunt Launch Partner. Independent launch preparation platform; not affiliated with Product Hunt.
             </p>
           </div>
-          <div className="flex items-center gap-6 text-xs font-medium text-slate-600">
-            <a href="#features" className="hover:text-[#0F172A]">Features</a>
-            <a href="#how-it-works" className="hover:text-[#0F172A]">How It Works</a>
-            <a href="#pricing" className="hover:text-[#0F172A]">Pricing</a>
-            <a href="#faq" className="hover:text-[#0F172A]">FAQ</a>
+          <div className="flex items-center gap-6 text-xs font-medium text-[#555555]">
+            <a href="#features" className="hover:text-[#FF6154] transition-colors">
+              Features
+            </a>
+            <a href="#how-it-works" className="hover:text-[#FF6154] transition-colors">
+              How It Works
+            </a>
+            <a href="#pricing" className="hover:text-[#FF6154] transition-colors">
+              Pricing
+            </a>
+            <a href="#faq" className="hover:text-[#FF6154] transition-colors">
+              FAQ
+            </a>
           </div>
         </div>
       </footer>

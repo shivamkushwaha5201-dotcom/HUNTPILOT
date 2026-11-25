@@ -28,6 +28,7 @@ import {
 } from '../types';
 import { authorizedFetch, formatTimestamp, isValidHttpUrl } from '../utils/validation';
 import { UseProductHuntMcpResult } from '../hooks/useProductHuntMcp';
+import { PhBanner, PhCard, PhModal, PhPageSection } from './ui/PhPrimitives';
 
 interface DraftGeneratorViewProps {
   projects: Project[];
@@ -934,13 +935,13 @@ export function DraftGeneratorView({
   const rightDraft = drafts.find((d) => d.id === compareRightId) || drafts[1] || drafts[0] || null;
 
   return (
-    <div className="space-y-6">
+    <PhPageSection className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
+          <h1 className="text-2xl font-bold text-[#202020] tracking-tight">
             AI Launch Draft Generator
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-[#777777] mt-1">
             Generate taglines, description, maker comment, gallery ideas, demo script, and launch announcement—then edit, save, and compare versions.
           </p>
         </div>
@@ -951,11 +952,11 @@ export function DraftGeneratorView({
             onClick={() => setShowPhManager(!showPhManager)}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
               showPhManager
-                ? 'border-[#EA580C] bg-orange-50 text-[#C2410C]'
-                : 'border-slate-300 bg-white text-[#0F172A] hover:bg-slate-50'
+                ? 'border-[#FF6154] bg-[#FFF1F0] text-[#CC3D31]'
+                : 'border-[#EAEAEA] bg-white text-[#202020] hover:bg-[#F7F7F7]'
             }`}
           >
-            <Rocket className="w-4 h-4" />
+            <Rocket className="w-4 h-4 text-[#FF6154]" />
             {showPhManager ? 'Hide Product Hunt Sync' : 'Product Hunt Drafts (MCP)'}
           </button>
 
@@ -969,8 +970,8 @@ export function DraftGeneratorView({
               }}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 compareMode
-                  ? 'border-[#6D28D9] bg-violet-50 text-[#6D28D9]'
-                  : 'border-slate-300 bg-white text-[#0F172A] hover:bg-slate-50'
+                  ? 'border-[#FF6154] bg-[#FFF1F0] text-[#CC3D31]'
+                  : 'border-[#EAEAEA] bg-white text-[#202020] hover:bg-[#F7F7F7]'
               }`}
             >
               <Columns2 className="w-4 h-4" />
@@ -982,21 +983,21 @@ export function DraftGeneratorView({
 
       {/* Product Hunt Launch Manager Panel (Official MCP) */}
       {showPhManager && (
-        <div className="bg-white border border-orange-200 rounded-2xl p-6 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+        <PhCard className="border-[#FFD6D2] space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#EAEAEA]">
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-[#0F172A]">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="text-base font-bold text-[#202020]">
                   Product Hunt Draft &amp; Launch Manager (Official MCP)
                 </h2>
                 {mcp.mcpStatus?.accountConnected && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
-                    <CheckCircle2 className="w-3 h-3" />
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#15803D]">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#16A34A]" />
                     Connected
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-600 mt-1">
+              <p className="text-xs text-[#777777] mt-1">
                 Inspect your real Product Hunt drafts, check launch date availability, stage thumbnail/gallery assets, and preview every update before confirming.
               </p>
             </div>
@@ -1006,7 +1007,7 @@ export function DraftGeneratorView({
                 type="button"
                 disabled={mcp.connecting}
                 onClick={() => mcp.connectProductHunt()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold cursor-pointer disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap shrink-0"
               >
                 <Link2 className="w-3.5 h-3.5" />
                 {mcp.connecting ? 'Authorizing...' : 'Connect Product Hunt'}
@@ -1016,7 +1017,7 @@ export function DraftGeneratorView({
                 type="button"
                 disabled={phLaunchesLoading}
                 onClick={loadPhLaunches}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-[#0F172A] cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-xs font-semibold text-[#202020] transition-colors cursor-pointer whitespace-nowrap shrink-0"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${phLaunchesLoading ? 'animate-spin' : ''}`} />
                 Refresh PH Drafts
@@ -1025,19 +1026,19 @@ export function DraftGeneratorView({
           </div>
 
           {!mcp.mcpStatus?.accountConnected ? (
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
+            <div className="p-4 rounded-xl bg-[#F7F7F7] border border-[#EAEAEA] text-xs text-[#555555]">
               Connect your Product Hunt account above (or in Profile &amp; Plan) to list your drafts, verify launch date slots, push updates from this editor, or submit launches with preview confirmation.
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
               {/* Left: Existing Drafts & Date Availability */}
               <div className="lg:col-span-5 space-y-4">
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-                  <p className="text-xs font-bold text-[#0F172A]">
+                <div className="p-4 rounded-xl bg-[#FAFAFA] border border-[#EAEAEA] space-y-2.5">
+                  <p className="text-xs font-bold text-[#202020]">
                     Your Product Hunt Drafts &amp; Launches ({phLaunches.length})
                   </p>
                   {phLaunches.length === 0 ? (
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-[#777777]">
                       No drafts returned yet. Fill out your Product URL &amp; copy below to create a new draft on Product Hunt.
                     </p>
                   ) : (
@@ -1049,20 +1050,20 @@ export function DraftGeneratorView({
                           onClick={() => inspectPhLaunch(item.id)}
                           className={`w-full p-2.5 rounded-lg border text-left text-xs transition-colors cursor-pointer ${
                             selectedPhLaunchId === item.id
-                              ? 'border-[#EA580C] bg-orange-50'
-                              : 'border-slate-200 bg-white hover:bg-slate-100'
+                              ? 'border-[#FF6154] bg-[#FFF1F0]'
+                              : 'border-[#EAEAEA] bg-white hover:bg-[#F7F7F7]'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-semibold text-[#0F172A] truncate">
+                            <span className="font-semibold text-[#202020] truncate">
                               {item.name}
                             </span>
-                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                            <span className="text-[11px] font-mono text-[#777777] shrink-0">
                               {item.status || 'draft'}
                             </span>
                           </div>
                           {item.tagline && (
-                            <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                            <p className="text-[11px] text-[#777777] truncate mt-0.5">
                               {item.tagline}
                             </p>
                           )}
@@ -1073,9 +1074,9 @@ export function DraftGeneratorView({
                 </div>
 
                 {/* Launch Date & URL Eligibility Context Check */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#0F172A]">
-                    <Calendar className="w-3.5 h-3.5 text-[#6D28D9]" />
+                <div className="p-4 rounded-xl bg-[#FAFAFA] border border-[#EAEAEA] space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#202020]">
+                    <Calendar className="w-3.5 h-3.5 text-[#FF6154]" />
                     <span>Check Launch Date &amp; URL Context</span>
                   </div>
                   <div className="flex gap-2">
@@ -1084,19 +1085,19 @@ export function DraftGeneratorView({
                       value={phContextDate}
                       onChange={(e) => setPhContextDate(e.target.value)}
                       placeholder="YYYY-MM-DD (optional)"
-                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-mono"
+                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-[#EAEAEA] bg-white text-xs font-mono text-[#202020] focus:outline-none focus:border-[#FF6154]"
                     />
                     <button
                       type="button"
                       disabled={phContextLoading}
                       onClick={handleCheckLaunchContext}
-                      className="px-3 py-1.5 rounded-lg bg-[#0F172A] text-white text-xs font-semibold cursor-pointer disabled:opacity-60"
+                      className="px-3 py-1.5 rounded-lg bg-[#202020] hover:bg-[#333333] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap shrink-0"
                     >
                       {phContextLoading ? 'Checking...' : 'Check'}
                     </button>
                   </div>
                   {phContextResult && (
-                    <pre className="p-2.5 rounded-lg bg-white border border-slate-200 text-[11px] text-slate-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
+                    <pre className="p-2.5 rounded-lg bg-white border border-[#EAEAEA] text-[11px] text-[#555555] whitespace-pre-wrap max-h-32 overflow-y-auto">
                       {phContextResult}
                     </pre>
                   )}
@@ -1105,9 +1106,9 @@ export function DraftGeneratorView({
 
               {/* Right: Selected Launch Assessment + Actions */}
               <div className="lg:col-span-7 space-y-4">
-                <div className="p-4 rounded-xl border border-slate-200 space-y-3">
+                <div className="p-4 rounded-xl border border-[#EAEAEA] bg-white space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs font-bold text-[#0F172A]">
+                    <p className="text-xs font-bold text-[#202020]">
                       {selectedPhLaunchId
                         ? `Selected Draft: ${selectedPhLaunchId}`
                         : 'Create New Draft or Select One on the Left'}
@@ -1118,7 +1119,7 @@ export function DraftGeneratorView({
                           <button
                             type="button"
                             onClick={handleLoadPhLaunchIntoEditor}
-                            className="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[11px] font-semibold text-[#0F172A] cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-[11px] font-semibold text-[#202020] transition-colors cursor-pointer whitespace-nowrap"
                           >
                             Load into Editor
                           </button>
@@ -1126,7 +1127,7 @@ export function DraftGeneratorView({
                             type="button"
                             disabled={phActionLoading}
                             onClick={handleRequestPreviewView}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-[11px] font-semibold text-[#0F172A] cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-[11px] font-semibold text-[#202020] transition-colors cursor-pointer whitespace-nowrap"
                           >
                             <Eye className="w-3 h-3" />
                             Preview View
@@ -1137,13 +1138,13 @@ export function DraftGeneratorView({
                   </div>
 
                   {selectedPhLaunchMeta && (
-                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="p-3 rounded-lg bg-[#FAFAFA] border border-[#EAEAEA] flex flex-wrap items-center justify-between gap-2 text-xs">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-[#0F172A]">
+                        <span className="font-semibold text-[#202020]">
                           Status: {selectedPhLaunchMeta.status || 'draft'}
                         </span>
                         {selectedPhLaunchMeta.launchDate && (
-                          <span className="font-mono text-slate-600">
+                          <span className="font-mono text-[#777777] tabular-nums">
                             · Target PT: {selectedPhLaunchMeta.launchDate}
                           </span>
                         )}
@@ -1153,14 +1154,14 @@ export function DraftGeneratorView({
                           href={selectedPhLaunchMeta.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 font-semibold text-[#6D28D9] hover:underline"
+                          className="inline-flex items-center gap-1 font-semibold text-[#FF6154] hover:underline"
                         >
                           Live PH URL <ExternalLink className="w-3 h-3" />
                         </a>
                       )}
                       {selectedPhLaunchMeta.missingItems &&
                         selectedPhLaunchMeta.missingItems.length > 0 && (
-                          <div className="w-full pt-1 text-[11px] text-amber-800">
+                          <div className="w-full pt-1 text-[11px] text-[#92400E]">
                             Missing checklist items:{' '}
                             {selectedPhLaunchMeta.missingItems.join(', ')}
                           </div>
@@ -1169,14 +1170,14 @@ export function DraftGeneratorView({
                   )}
 
                   {selectedPhLaunchText && (
-                    <pre className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-700 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                    <pre className="p-3 rounded-lg bg-[#FAFAFA] border border-[#EAEAEA] text-[11px] text-[#555555] whitespace-pre-wrap max-h-48 overflow-y-auto">
                       {selectedPhLaunchText}
                     </pre>
                   )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                      <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                      <label className="block text-[11px] font-medium text-[#555555] mb-1">
                         Target Launch Date (Pacific YYYY-MM-DD)
                       </label>
                       <input
@@ -1184,11 +1185,11 @@ export function DraftGeneratorView({
                         value={launchDateInput}
                         onChange={(e) => setLaunchDateInput(e.target.value)}
                         placeholder="e.g., 2026-12-01"
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[#EAEAEA] text-xs font-mono text-[#202020] focus:outline-none focus:border-[#FF6154]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                      <label className="block text-[11px] font-medium text-[#555555] mb-1">
                         Stage Media Asset (HTTPS Image URL)
                       </label>
                       <div className="flex gap-1.5">
@@ -1197,7 +1198,7 @@ export function DraftGeneratorView({
                           onChange={(e) =>
                             setAssetKind(e.target.value as 'thumbnail' | 'gallery')
                           }
-                          className="px-2 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
+                          className="px-2 py-1.5 rounded-lg border border-[#EAEAEA] text-xs bg-white text-[#202020] focus:outline-none focus:border-[#FF6154]"
                         >
                           <option value="thumbnail">Thumbnail</option>
                           <option value="gallery">Gallery</option>
@@ -1207,13 +1208,13 @@ export function DraftGeneratorView({
                           value={assetUrl}
                           onChange={(e) => setAssetUrl(e.target.value)}
                           placeholder="https://.../image.png"
-                          className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-slate-300 text-xs"
+                          className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-[#EAEAEA] text-xs text-[#202020] focus:outline-none focus:border-[#FF6154]"
                         />
                         <button
                           type="button"
                           disabled={assetPreparing || !selectedPhLaunchId}
                           onClick={handlePrepareAsset}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-xs font-semibold cursor-pointer disabled:opacity-50"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#EAEAEA] bg-[#F7F7F7] hover:bg-[#F3F3F3] text-xs font-semibold text-[#202020] cursor-pointer disabled:opacity-50 whitespace-nowrap shrink-0"
                         >
                           <ImageIcon className="w-3 h-3" />
                           Stage
@@ -1223,17 +1224,21 @@ export function DraftGeneratorView({
                   </div>
 
                   {assetResultText && (
-                    <pre className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 whitespace-pre-wrap max-h-28 overflow-y-auto">
+                    <pre className="p-2.5 rounded-lg bg-[#F0FDF4] border border-[#BBF7D0] text-[11px] text-[#15803D] whitespace-pre-wrap max-h-28 overflow-y-auto">
                       {assetResultText}
                     </pre>
                   )}
 
-                  <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-slate-100">
+                  <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-[#EAEAEA]">
                     <button
                       type="button"
                       disabled={phActionLoading}
                       onClick={handleRequestStartLaunch}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-semibold cursor-pointer disabled:opacity-60"
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap ${
+                        selectedPhLaunchId
+                          ? 'border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-[#202020]'
+                          : 'bg-[#FF6154] hover:bg-[#E54B3E] text-white'
+                      }`}
                     >
                       <UploadCloud className="w-3.5 h-3.5" />
                       Create New PH Draft (Preview &amp; Confirm)
@@ -1245,7 +1250,7 @@ export function DraftGeneratorView({
                           type="button"
                           disabled={phActionLoading}
                           onClick={handleRequestUpdateLaunch}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#6D28D9] text-[#6D28D9] bg-violet-50 hover:bg-violet-100 text-xs font-semibold cursor-pointer disabled:opacity-60"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#FFD6D2] text-[#CC3D31] bg-[#FFF1F0] hover:bg-[#FFE8E5] text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap"
                         >
                           <Save className="w-3.5 h-3.5" />
                           Push Editor Changes to PH Draft
@@ -1255,7 +1260,7 @@ export function DraftGeneratorView({
                           type="button"
                           disabled={phActionLoading}
                           onClick={handleRequestSubmitLaunch}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold cursor-pointer disabled:opacity-60"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap"
                         >
                           <Send className="w-3.5 h-3.5" />
                           Preview &amp; Submit Launch
@@ -1267,29 +1272,21 @@ export function DraftGeneratorView({
               </div>
             </div>
           )}
-        </div>
+        </PhCard>
       )}
 
-      {error && (
-        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
-          {error}
-        </div>
-      )}
-      {saveMessage && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
-          {saveMessage}
-        </div>
-      )}
+      {error && <PhBanner tone="error">{error}</PhBanner>}
+      {saveMessage && <PhBanner tone="success">{saveMessage}</PhBanner>}
 
       {compareMode && drafts.length >= 2 ? (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-slate-200">
+        <PhCard className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-[#EAEAEA]">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Version A</label>
+              <label className="block text-xs font-medium text-[#777777] mb-1">Version A</label>
               <select
                 value={leftDraft?.id || ''}
                 onChange={(e) => setCompareLeftId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm bg-white text-[#202020] focus:outline-none focus:border-[#FF6154]"
               >
                 {drafts.map((d) => (
                   <option key={d.id} value={d.id}>
@@ -1299,11 +1296,11 @@ export function DraftGeneratorView({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Version B</label>
+              <label className="block text-xs font-medium text-[#777777] mb-1">Version B</label>
               <select
                 value={rightDraft?.id || ''}
                 onChange={(e) => setCompareRightId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm bg-white text-[#202020] focus:outline-none focus:border-[#FF6154]"
               >
                 {drafts.map((d) => (
                   <option key={d.id} value={d.id}>
@@ -1317,9 +1314,9 @@ export function DraftGeneratorView({
           {leftDraft && rightDraft && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[leftDraft, rightDraft].map((d, i) => (
-                <div key={`${d.id}-${i}`} className="border border-slate-200 rounded-xl p-5 space-y-4 bg-slate-50/50">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                    <span className="text-sm font-bold text-[#0F172A]">
+                <div key={`${d.id}-${i}`} className="border border-[#EAEAEA] rounded-xl p-5 space-y-4 bg-[#FAFAFA]">
+                  <div className="flex items-center justify-between border-b border-[#EAEAEA] pb-3">
+                    <span className="text-sm font-bold text-[#202020]">
                       {d.productName} · {d.versionName}
                     </span>
                     <button
@@ -1328,45 +1325,45 @@ export function DraftGeneratorView({
                         loadDraftIntoEditor(d);
                         setCompareMode(false);
                       }}
-                      className="text-xs font-semibold text-[#6D28D9] hover:underline cursor-pointer"
+                      className="text-xs font-semibold text-[#FF6154] hover:underline cursor-pointer whitespace-nowrap"
                     >
                       Load into Editor
                     </button>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-500 mb-1">Selected Tagline</p>
-                    <p className="text-sm font-medium text-[#0F172A]">{d.selectedTagline}</p>
+                    <p className="text-xs font-semibold text-[#777777] mb-1">Selected Tagline</p>
+                    <p className="text-sm font-medium text-[#202020]">{d.selectedTagline}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-500 mb-1">Description</p>
-                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                    <p className="text-xs font-semibold text-[#777777] mb-1">Description</p>
+                    <p className="text-xs text-[#555555] leading-relaxed whitespace-pre-line">
                       {d.description}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-500 mb-1">First Maker Comment</p>
-                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                    <p className="text-xs font-semibold text-[#777777] mb-1">First Maker Comment</p>
+                    <p className="text-xs text-[#555555] leading-relaxed whitespace-pre-line">
                       {d.makerComment}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-500 mb-1">Topics</p>
-                    <p className="text-xs text-slate-700">{d.topics.join(' · ')}</p>
+                    <p className="text-xs font-semibold text-[#777777] mb-1">Topics</p>
+                    <p className="text-xs text-[#555555]">{d.topics.join(' · ')}</p>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </PhCard>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left: Product Input Form */}
-          <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-[#0F172A]">1. Product Brief</h2>
+          <div className="lg:col-span-5 bg-white border border-[#EAEAEA] rounded-xl p-6 space-y-4">
+            <h2 className="text-base font-bold text-[#202020]">1. Product Brief</h2>
 
             {projects.length > 0 && (
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#202020] mb-1">
                   Link to Project
                 </label>
                 <select
@@ -1385,7 +1382,7 @@ export function DraftGeneratorView({
                       setProductDescription(nextProj.description || '');
                     }
                   }}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white"
+                  className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm bg-white text-[#202020] focus:outline-none focus:border-[#FF6154]"
                 >
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -1398,7 +1395,7 @@ export function DraftGeneratorView({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#202020] mb-1">
                   Product Name *
                 </label>
                 <input
@@ -1407,11 +1404,11 @@ export function DraftGeneratorView({
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   placeholder="PulseBoard"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#202020] mb-1">
                   Category *
                 </label>
                 <input
@@ -1420,13 +1417,13 @@ export function DraftGeneratorView({
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   placeholder="SaaS / Developer Tools"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-xs font-medium text-[#202020] mb-1">
                 Website URL
               </label>
               <input
@@ -1435,12 +1432,12 @@ export function DraftGeneratorView({
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
                 placeholder="https://yourproduct.com"
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-xs font-medium text-[#202020] mb-1">
                 Target Audience
               </label>
               <input
@@ -1449,12 +1446,12 @@ export function DraftGeneratorView({
                 value={targetAudience}
                 onChange={(e) => setTargetAudience(e.target.value)}
                 placeholder="Who gets immediate value on day 1?"
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-xs font-medium text-[#202020] mb-1">
                 Main Problem Solved
               </label>
               <textarea
@@ -1463,12 +1460,12 @@ export function DraftGeneratorView({
                 value={mainProblem}
                 onChange={(e) => setMainProblem(e.target.value)}
                 placeholder="What frustrating workflow does this fix?"
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-xs font-medium text-[#202020] mb-1">
                 Key Features (one per line)
               </label>
               <textarea
@@ -1476,12 +1473,12 @@ export function DraftGeneratorView({
                 value={keyFeaturesText}
                 onChange={(e) => setKeyFeaturesText(e.target.value)}
                 placeholder="One-click ticket clustering&#10;Weekly Slack digest&#10;Linear & Jira sync"
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-xs font-medium text-[#202020] mb-1">
                 Unique Selling Proposition
               </label>
               <input
@@ -1490,12 +1487,12 @@ export function DraftGeneratorView({
                 value={usp}
                 onChange={(e) => setUsp(e.target.value)}
                 placeholder="Why try this over existing tools?"
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-xs font-medium text-[#202020] mb-1">
                 Product Description Notes
               </label>
               <textarea
@@ -1504,7 +1501,7 @@ export function DraftGeneratorView({
                 value={productDescription}
                 onChange={(e) => setProductDescription(e.target.value)}
                 placeholder="Describe how the product works in plain words..."
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
               />
             </div>
 
@@ -1512,7 +1509,7 @@ export function DraftGeneratorView({
               type="button"
               disabled={generating}
               onClick={() => runGeneration('all')}
-              className="w-full py-2.5 px-4 rounded-lg bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
+              className="w-full py-2.5 px-4 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
             >
               <Sparkles className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
               {generating ? 'Generating Launch Kit...' : 'Generate Complete Launch Draft'}
@@ -1520,8 +1517,8 @@ export function DraftGeneratorView({
 
             {/* Saved Versions List */}
             {projectDrafts.length > 0 && (
-              <div className="pt-4 border-t border-slate-200">
-                <p className="text-xs font-semibold text-slate-500 mb-2">
+              <div className="pt-4 border-t border-[#EAEAEA]">
+                <p className="text-xs font-semibold text-[#777777] mb-2">
                   Saved Draft Versions ({projectDrafts.length})
                 </p>
                 <div className="space-y-2">
@@ -1532,8 +1529,8 @@ export function DraftGeneratorView({
                         key={d.id}
                         className={`p-2.5 rounded-lg border flex items-center justify-between gap-2 transition-colors ${
                           isEditing
-                            ? 'border-[#6D28D9] bg-violet-50'
-                            : 'border-slate-200 bg-slate-50'
+                            ? 'border-[#FF6154] bg-[#FFF1F0]'
+                            : 'border-[#EAEAEA] bg-[#FAFAFA] hover:bg-[#F3F3F3]'
                         }`}
                       >
                         <button
@@ -1541,15 +1538,15 @@ export function DraftGeneratorView({
                           onClick={() => loadDraftIntoEditor(d)}
                           className="text-left min-w-0 flex-1 cursor-pointer"
                         >
-                          <p className="text-xs font-semibold text-[#0F172A] truncate">
+                          <p className="text-xs font-semibold text-[#202020] truncate">
                             {d.versionName} · {d.productName}
                             {isEditing && (
-                              <span className="ml-1.5 text-[10px] font-semibold text-[#6D28D9]">
+                              <span className="ml-1.5 text-[11px] font-semibold text-[#CC3D31]">
                                 (Editing)
                               </span>
                             )}
                           </p>
-                          <p className="text-[11px] text-slate-500 truncate">
+                          <p className="text-[11px] text-[#777777] truncate">
                             {d.selectedTagline}
                           </p>
                         </button>
@@ -1559,7 +1556,7 @@ export function DraftGeneratorView({
                             if (d.id === editingDraftId) setEditingDraftId(null);
                             onDeleteDraft(d.id);
                           }}
-                          className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                          className="p-1 text-[#999999] hover:text-[#DC2626] transition-colors cursor-pointer"
                           title="Delete draft"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1575,31 +1572,33 @@ export function DraftGeneratorView({
           {/* Right: Editable Generated Output */}
           <div className="lg:col-span-7 space-y-5">
             {!hasGeneratedOutput ? (
-              <div className="bg-white border border-slate-200 rounded-xl p-10 text-center">
-                <Sparkles className="w-9 h-9 text-[#6D28D9] mx-auto mb-3" />
-                <h3 className="text-base font-bold text-[#0F172A] mb-1">
+              <PhCard className="p-10 text-center">
+                <div className="w-11 h-11 rounded-xl bg-[#FFF1F0] border border-[#FFD6D2] text-[#FF6154] flex items-center justify-center mx-auto mb-3">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <h3 className="text-base font-bold text-[#202020] mb-1">
                   Ready to generate your Product Hunt launch kit
                 </h3>
-                <p className="text-sm text-slate-600 max-w-md mx-auto">
+                <p className="text-sm text-[#777777] max-w-md mx-auto">
                   Fill out your product brief on the left and click “Generate Complete Launch Draft” to get 5 tagline ideas, a maker comment, gallery slide concepts, a 60-second demo script, and more.
                 </p>
-              </div>
+              </PhCard>
             ) : (
-              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
+              <PhCard className="space-y-6">
                 {/* Save Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs font-medium text-slate-600">Version:</label>
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#EAEAEA]">
+                  <div className="flex items-center gap-2.5">
+                    <label className="text-xs font-medium text-[#555555]">Version:</label>
                     <input
                       type="text"
                       maxLength={80}
                       value={versionName}
                       onChange={(e) => setVersionName(e.target.value)}
-                      className="w-28 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
+                      className="w-28 px-2.5 py-1.5 rounded-lg border border-[#EAEAEA] text-xs font-mono text-[#202020] focus:outline-none focus:border-[#FF6154]"
                     />
                     {editingDraftId && drafts.some((d) => d.id === editingDraftId) && (
-                      <span className="text-[11px] font-medium text-[#6D28D9] bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md">
-                        Editing saved draft
+                      <span className="text-xs font-medium text-[#CC3D31]">
+                        · Editing saved draft
                       </span>
                     )}
                   </div>
@@ -1609,7 +1608,7 @@ export function DraftGeneratorView({
                         type="button"
                         disabled={updating || saving}
                         onClick={handleUpdateExistingDraft}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#FFD6D2] bg-[#FFF1F0] hover:bg-[#FFE8E5] text-[#CC3D31] text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap"
                       >
                         <Save className="w-3.5 h-3.5" />
                         {updating ? 'Updating...' : 'Update Draft'}
@@ -1619,7 +1618,7 @@ export function DraftGeneratorView({
                       type="button"
                       disabled={saving || updating}
                       onClick={handleSaveVersion}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap"
                     >
                       <Save className="w-3.5 h-3.5" />
                       {saving
@@ -1634,15 +1633,15 @@ export function DraftGeneratorView({
                 {/* 5 Taglines */}
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <label className="text-xs font-semibold text-[#0F172A]">
+                    <label className="text-xs font-semibold text-[#202020]">
                       5 Tagline Suggestions (select &amp; edit)
                     </label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <button
                         type="button"
                         disabled={regenSection === 'taglines'}
                         onClick={() => runGeneration('taglines')}
-                        className="inline-flex items-center gap-1 text-xs text-[#6D28D9] hover:underline cursor-pointer"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-[#FF6154] hover:underline cursor-pointer"
                       >
                         <RefreshCw className={`w-3 h-3 ${regenSection === 'taglines' ? 'animate-spin' : ''}`} />
                         Regenerate
@@ -1650,9 +1649,9 @@ export function DraftGeneratorView({
                       <button
                         type="button"
                         onClick={() => handleCopy('tagline', selectedTagline)}
-                        className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-[#0F172A] cursor-pointer"
+                        className="inline-flex items-center gap-1 text-xs text-[#777777] hover:text-[#202020] cursor-pointer"
                       >
-                        {copiedKey === 'tagline' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                        {copiedKey === 'tagline' ? <Check className="w-3 h-3 text-[#16A34A]" /> : <Copy className="w-3 h-3" />}
                         {copiedKey === 'tagline' ? 'Copied' : 'Copy'}
                       </button>
                     </div>
@@ -1665,12 +1664,12 @@ export function DraftGeneratorView({
                         onClick={() => setSelectedTagline(t)}
                         className={`w-full px-3 py-2 rounded-lg border text-left text-xs flex items-center justify-between gap-2 transition-colors cursor-pointer ${
                           selectedTagline === t
-                            ? 'border-[#6D28D9] bg-violet-50 text-[#0F172A] font-medium'
-                            : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                            ? 'border-[#FF6154] bg-[#FFF1F0] text-[#202020] font-medium'
+                            : 'border-[#EAEAEA] bg-white hover:bg-[#FAFAFA] text-[#555555]'
                         }`}
                       >
                         <span>{t}</span>
-                        <span className="font-mono text-[11px] text-slate-400 tabular-nums shrink-0">
+                        <span className="font-mono text-[11px] text-[#777777] tabular-nums shrink-0">
                           {t.length}/60
                         </span>
                       </button>
@@ -1682,9 +1681,9 @@ export function DraftGeneratorView({
                     value={selectedTagline}
                     onChange={(e) => setSelectedTagline(e.target.value)}
                     placeholder="Edit your active tagline..."
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium text-[#0F172A]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm font-medium text-[#202020] focus:outline-none focus:border-[#FF6154]"
                   />
-                  <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
+                  <p className="text-[11px] text-[#777777] mt-1 tabular-nums">
                     Active tagline length: {selectedTagline.length} / 60 recommended characters
                   </p>
                 </div>
@@ -1766,17 +1765,17 @@ export function DraftGeneratorView({
                   onCopy={() => handleCopy('announce', launchAnnouncement)}
                   copied={copiedKey === 'announce'}
                 />
-              </div>
+              </PhCard>
             )}
 
             {/* Launch Schedule & Live Status Tracker */}
-            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <PhCard className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#EAEAEA]">
                 <div>
-                  <h3 className="text-base font-bold text-[#0F172A]">
+                  <h3 className="text-base font-bold text-[#202020]">
                     Launch Schedule &amp; Live Tracking
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-[#777777] mt-0.5">
                     Track your target Pacific launch date, status, and live Product Hunt URL across your workspace.
                   </p>
                 </div>
@@ -1784,24 +1783,24 @@ export function DraftGeneratorView({
 
               <form onSubmit={handleSaveManualSchedule} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
                 <div className="sm:col-span-3">
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                  <label className="block text-[11px] font-medium text-[#555555] mb-1">
                     Launch Date (PT)
                   </label>
                   <input
                     type="date"
                     value={launchDateInput}
                     onChange={(e) => setLaunchDateInput(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-[#EAEAEA] text-xs font-mono text-[#202020] focus:outline-none focus:border-[#FF6154]"
                   />
                 </div>
                 <div className="sm:col-span-3">
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                  <label className="block text-[11px] font-medium text-[#555555] mb-1">
                     Status
                   </label>
                   <select
                     value={schedStatusInput}
                     onChange={(e) => setSchedStatusInput(e.target.value as LaunchScheduleStatus)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-[#EAEAEA] text-xs bg-white text-[#202020] focus:outline-none focus:border-[#FF6154]"
                   >
                     <option value="draft">Draft</option>
                     <option value="scheduled">Scheduled</option>
@@ -1810,7 +1809,7 @@ export function DraftGeneratorView({
                   </select>
                 </div>
                 <div className="sm:col-span-4">
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                  <label className="block text-[11px] font-medium text-[#555555] mb-1">
                     Live Product Hunt URL (optional)
                   </label>
                   <input
@@ -1818,14 +1817,14 @@ export function DraftGeneratorView({
                     value={schedLiveUrlInput}
                     onChange={(e) => setSchedLiveUrlInput(e.target.value)}
                     placeholder="https://www.producthunt.com/posts/..."
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-[#EAEAEA] text-xs text-[#202020] focus:outline-none focus:border-[#FF6154]"
                   />
                 </div>
                 <div className="sm:col-span-2">
                   <button
                     type="submit"
                     disabled={savingSchedule}
-                    className="w-full px-3 py-1.5 rounded-lg bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-semibold cursor-pointer disabled:opacity-60"
+                    className="w-full px-3 py-1.5 rounded-lg bg-[#202020] hover:bg-[#333333] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap"
                   >
                     {savingSchedule ? 'Saving...' : 'Track Launch'}
                   </button>
@@ -1837,7 +1836,7 @@ export function DraftGeneratorView({
                     value={schedNotesInput}
                     onChange={(e) => setSchedNotesInput(e.target.value)}
                     placeholder="Optional launch-day shift notes or checklist reminder..."
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-[#EAEAEA] text-xs text-[#202020] focus:outline-none focus:border-[#FF6154]"
                   />
                 </div>
               </form>
@@ -1847,32 +1846,36 @@ export function DraftGeneratorView({
                   {launchSchedules.map((sched) => (
                     <div
                       key={sched.id}
-                      className="p-3 rounded-lg border border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3 text-xs"
+                      className="p-3 rounded-lg border border-[#EAEAEA] bg-[#FAFAFA] flex flex-wrap items-center justify-between gap-3 text-xs"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-[#0F172A]">
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className="font-semibold text-[#202020]">
                             {sched.productName}
                           </span>
+                          <span aria-hidden="true" className="text-[#CCCCCC]">·</span>
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                            className={`font-semibold capitalize ${
                               sched.status === 'live'
-                                ? 'bg-emerald-100 text-emerald-800'
+                                ? 'text-[#15803D]'
                                 : sched.status === 'scheduled'
-                                ? 'bg-violet-100 text-[#6D28D9]'
-                                : 'bg-slate-200 text-slate-700'
+                                ? 'text-[#FF6154]'
+                                : 'text-[#777777]'
                             }`}
                           >
                             {sched.status}
                           </span>
                           {sched.launchDate && (
-                            <span className="font-mono text-[11px] text-slate-600">
-                              {sched.launchDate} PT
-                            </span>
+                            <>
+                              <span aria-hidden="true" className="text-[#CCCCCC]">·</span>
+                              <span className="font-mono text-[11px] text-[#777777] tabular-nums">
+                                {sched.launchDate} PT
+                              </span>
+                            </>
                           )}
                         </div>
                         {sched.notes && (
-                          <p className="text-[11px] text-slate-500 mt-1 truncate">{sched.notes}</p>
+                          <p className="text-[11px] text-[#777777] mt-1 truncate">{sched.notes}</p>
                         )}
                       </div>
 
@@ -1882,7 +1885,7 @@ export function DraftGeneratorView({
                             href={sched.liveUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 font-semibold text-[#6D28D9] hover:underline"
+                            className="inline-flex items-center gap-1 font-semibold text-[#FF6154] hover:underline"
                           >
                             Live PH <ExternalLink className="w-3 h-3" />
                           </a>
@@ -1894,7 +1897,7 @@ export function DraftGeneratorView({
                               status: e.target.value as LaunchScheduleStatus,
                             })
                           }
-                          className="px-2 py-1 rounded border border-slate-300 bg-white text-[11px]"
+                          className="px-2 py-1 rounded-lg border border-[#EAEAEA] bg-white text-[11px] text-[#202020] focus:outline-none focus:border-[#FF6154]"
                         >
                           <option value="draft">Draft</option>
                           <option value="scheduled">Scheduled</option>
@@ -1905,7 +1908,7 @@ export function DraftGeneratorView({
                           type="button"
                           onClick={() => onDeleteLaunchSchedule(sched.id)}
                           title="Remove tracked schedule"
-                          className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                          className="p-1 text-[#999999] hover:text-[#DC2626] transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1914,52 +1917,37 @@ export function DraftGeneratorView({
                   ))}
                 </div>
               )}
-            </div>
+            </PhCard>
           </div>
         </div>
       )}
+
       {/* Mandatory Preview & Explicit Confirmation Modal for Product Hunt MCP Mutations */}
       {pendingConfirmation && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-orange-50 text-[#EA580C] flex items-center justify-center shrink-0">
-                  <ShieldAlert className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#0F172A]">
-                    {pendingConfirmation.title}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Review exact changes and Product Hunt warnings before confirming.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPendingConfirmation(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+        <PhModal
+          title={pendingConfirmation.title}
+          subtitle="Review exact changes and Product Hunt warnings before confirming."
+          maxWidth="max-w-xl"
+          onClose={() => setPendingConfirmation(null)}
+          icon={
+            <div className="w-9 h-9 rounded-lg bg-[#FFF1F0] border border-[#FFD6D2] text-[#FF6154] flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-5 h-5" />
             </div>
-
+          }
+        >
+          <div className="space-y-4">
             {pendingConfirmation.warnings.length > 0 && (
-              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
-                <p className="font-semibold flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  Warnings &amp; Impact
-                </p>
+              <PhBanner tone="warning">
+                <p className="font-semibold mb-1">Warnings &amp; Impact</p>
                 {pendingConfirmation.warnings.map((w, i) => (
                   <p key={i}>• {w}</p>
                 ))}
-              </div>
+              </PhBanner>
             )}
 
             <div className="space-y-1.5 text-xs">
-              <p className="font-semibold text-slate-700">Proposed Action Summary</p>
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1 text-slate-700">
+              <p className="font-semibold text-[#202020]">Proposed Action Summary</p>
+              <div className="p-3 rounded-lg bg-[#F7F7F7] border border-[#EAEAEA] space-y-1 text-[#555555]">
                 {pendingConfirmation.summaryLines.map((line, i) => (
                   <p key={i} className="break-words">
                     {line}
@@ -1969,8 +1957,8 @@ export function DraftGeneratorView({
             </div>
 
             {pendingConfirmation.sideEffects.length > 0 && (
-              <div className="text-xs text-slate-600 space-y-1">
-                <p className="font-semibold text-slate-700">Side Effects</p>
+              <div className="text-xs text-[#555555] space-y-1">
+                <p className="font-semibold text-[#202020]">Side Effects</p>
                 {pendingConfirmation.sideEffects.map((s, i) => (
                   <p key={i}>• {s}</p>
                 ))}
@@ -1978,18 +1966,18 @@ export function DraftGeneratorView({
             )}
 
             <div className="space-y-1.5 text-xs">
-              <p className="font-semibold text-slate-700">Official Product Hunt Preview</p>
-              <pre className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-700 whitespace-pre-wrap max-h-44 overflow-y-auto">
+              <p className="font-semibold text-[#202020]">Official Product Hunt Preview</p>
+              <pre className="p-3 rounded-lg bg-[#F7F7F7] border border-[#EAEAEA] text-[11px] text-[#555555] whitespace-pre-wrap max-h-44 overflow-y-auto">
                 {pendingConfirmation.previewText}
               </pre>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+            <div className="flex flex-wrap items-center justify-end gap-2.5 pt-3 border-t border-[#EAEAEA]">
               <button
                 type="button"
                 disabled={phActionLoading}
                 onClick={() => setPendingConfirmation(null)}
-                className="px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-[#0F172A] cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-xs font-semibold text-[#202020] transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -1997,15 +1985,15 @@ export function DraftGeneratorView({
                 type="button"
                 disabled={phActionLoading}
                 onClick={handleExecuteConfirmedAction}
-                className="px-4 py-2 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold cursor-pointer disabled:opacity-60"
+                className="px-4 py-2 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
               >
                 {phActionLoading ? 'Executing...' : 'Confirm & Execute on Product Hunt'}
               </button>
             </div>
           </div>
-        </div>
+        </PhModal>
       )}
-    </div>
+    </PhPageSection>
   );
 }
 
@@ -2033,13 +2021,13 @@ function EditableSection({
   return (
     <div>
       <div className="flex items-center justify-between gap-2 mb-1.5">
-        <label className="text-xs font-semibold text-[#0F172A]">{label}</label>
+        <label className="text-xs font-semibold text-[#202020]">{label}</label>
         <div className="flex items-center gap-3">
           <button
             type="button"
             disabled={regenerating}
             onClick={onRegenerate}
-            className="inline-flex items-center gap-1 text-xs text-[#6D28D9] hover:underline cursor-pointer"
+            className="inline-flex items-center gap-1 text-xs font-medium text-[#FF6154] hover:underline cursor-pointer"
           >
             <RefreshCw className={`w-3 h-3 ${regenerating ? 'animate-spin' : ''}`} />
             Regenerate
@@ -2047,9 +2035,9 @@ function EditableSection({
           <button
             type="button"
             onClick={onCopy}
-            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-[#0F172A] cursor-pointer"
+            className="inline-flex items-center gap-1 text-xs text-[#777777] hover:text-[#202020] cursor-pointer"
           >
-            {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+            {copied ? <Check className="w-3 h-3 text-[#16A34A]" /> : <Copy className="w-3 h-3" />}
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
@@ -2059,7 +2047,7 @@ function EditableSection({
         maxLength={maxLength}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm text-[#0F172A] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]"
+        className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm text-[#202020] leading-relaxed focus:outline-none focus:border-[#FF6154]"
       />
     </div>
   );

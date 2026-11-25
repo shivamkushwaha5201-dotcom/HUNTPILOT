@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { MotionConfig } from 'motion/react';
 import { AlertTriangle } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { HuntPilotLogo } from './components/ui/PhPrimitives';
 import { LandingPage } from './pages/LandingPage';
 import { AuthPage } from './pages/AuthPage';
 import { AppShell } from './components/AppShell';
@@ -91,6 +93,7 @@ function HuntPilotApp() {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [pendingResearchImport, setPendingResearchImport] =
     useState<PendingResearchImport | null>(null);
+  const [globalIntelSearch, setGlobalIntelSearch] = useState<string | undefined>(undefined);
 
   const syncUrl = useCallback(
     (nextView: ViewMode, nextAuth: AuthMode, nextTab: WorkspaceTab, replace = false) => {
@@ -212,18 +215,25 @@ function HuntPilotApp() {
 
   if (!resolvedFirebaseStatus.configured) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="max-w-lg w-full bg-white border border-red-200 rounded-2xl p-6 space-y-3">
-          <div className="flex items-center gap-2.5 text-red-700 font-bold text-base">
+      <div className="min-h-screen bg-[#F7F7F7] flex flex-col items-center justify-center p-6">
+        <div className="mb-6">
+          <HuntPilotLogo />
+        </div>
+        <div className="max-w-lg w-full bg-white border border-[#FECACA] rounded-2xl p-6 space-y-3">
+          <div className="flex items-center gap-2.5 text-[#DC2626] font-bold text-base">
             <AlertTriangle className="w-5 h-5 shrink-0" />
             Firebase Configuration Required
           </div>
-          <p className="text-sm text-slate-600 leading-relaxed">
+          <p className="text-sm text-[#555555] leading-relaxed">
             {resolvedFirebaseStatus.error ||
               'HuntPilot AI cannot initialize authentication or workspace storage because Firebase configuration is missing.'}
           </p>
-          <p className="text-xs text-slate-500">
-            Update <code className="font-mono bg-slate-100 px-1 py-0.5 rounded">firebase-applet-config.json</code> with a valid Firebase Web App config and reload the application.
+          <p className="text-xs text-[#777777]">
+            Update{' '}
+            <code className="font-mono bg-[#F3F3F3] px-1.5 py-0.5 rounded text-[#202020]">
+              firebase-applet-config.json
+            </code>{' '}
+            with a valid Firebase Web App config and reload the application.
           </p>
         </div>
       </div>
@@ -232,8 +242,9 @@ function HuntPilotApp() {
 
   if (!authReady) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-sm font-medium text-slate-500">Loading HuntPilot AI...</div>
+      <div className="min-h-screen bg-[#F7F7F7] flex flex-col items-center justify-center gap-3 p-6">
+        <HuntPilotLogo />
+        <p className="text-xs font-medium text-[#777777]">Loading your launch workspace...</p>
       </div>
     );
   }
@@ -257,6 +268,10 @@ function HuntPilotApp() {
         activeTab={activeTab}
         onSelectTab={(tab) => navigateToWorkspaceTab(tab)}
         onBackToLanding={() => navigateToLanding()}
+        onGlobalSearch={(q) => {
+          setGlobalIntelSearch(q);
+          navigateToWorkspaceTab('intelligence');
+        }}
         onSignOut={async () => {
           navigateToLanding(true);
           await signOutUser();
@@ -368,6 +383,8 @@ function HuntPilotApp() {
             savedIntelligence={savedIntelligence}
             onSaveIntelligence={saveIntelligenceItem}
             onDeleteIntelligence={deleteIntelligenceItem}
+            externalSearchQuery={globalIntelSearch}
+            onConsumeExternalSearch={() => setGlobalIntelSearch(undefined)}
           />
         )}
 
@@ -398,9 +415,11 @@ function HuntPilotApp() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <HuntPilotApp />
-      </AuthProvider>
+      <MotionConfig reducedMotion="user">
+        <AuthProvider>
+          <HuntPilotApp />
+        </AuthProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

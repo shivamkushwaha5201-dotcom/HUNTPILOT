@@ -11,6 +11,7 @@ import {
 import { ACADEMY_CHAPTERS } from '../data/academyData';
 import { AcademyProgress, Project } from '../types';
 import { authorizedFetch } from '../utils/validation';
+import { PhBanner, PhCard } from './ui/PhPrimitives';
 
 interface AcademyViewProps {
   progress: AcademyProgress | null;
@@ -114,43 +115,43 @@ export function AcademyView({
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+      <div className="bg-white border border-[#EAEAEA] rounded-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12">
         <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between">
           <div>
-            <p className="text-xs font-semibold text-[#6D28D9] mb-2">
+            <p className="text-xs font-semibold text-[#FF6154] mb-2">
               Product Hunt Launch Academy
             </p>
-            <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight mb-2">
+            <h1 className="text-2xl font-bold text-[#202020] tracking-tight mb-2">
               Learn Product Hunt from first principles
             </h1>
-            <p className="text-sm text-slate-600 leading-relaxed max-w-xl">
+            <p className="text-sm text-[#555555] leading-relaxed max-w-xl">
               Six practical chapters written in plain English for first-time makers. Read each guide, study real examples, review Do’s and Don’ts, and check off action items as you prepare your launch.
             </p>
           </div>
 
-          <div className="mt-6 pt-5 border-t border-slate-100">
+          <div className="mt-6 pt-5 border-t border-[#EAEAEA]">
             <div className="flex items-center justify-between text-xs mb-2">
-              <span className="font-medium text-slate-700">
+              <span className="font-medium text-[#555555]">
                 Academy Progress · {completedLessons.length}/{totalLessons} lessons ·{' '}
                 {completedChecklist.length}/{totalChecklist} checklist items
               </span>
-              <span className="font-mono font-bold text-[#6D28D9] tabular-nums">
+              <span className="font-mono font-bold text-[#FF6154] tabular-nums">
                 {overallPercent}%
               </span>
             </div>
-            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-[#F3F3F3] rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#6D28D9] rounded-full transition-all duration-300"
+                className="h-full bg-[#FF6154] rounded-full transition-all duration-300"
                 style={{ width: `${overallPercent}%` }}
               />
             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-5 bg-slate-100 min-h-[200px] relative">
+        <div className="lg:col-span-5 bg-[#F3F3F3] min-h-[200px] relative">
           {imgFailed ? (
-            <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-gradient-to-br from-violet-50 to-orange-50 text-[#0F172A]">
-              <Compass className="w-9 h-9 text-[#6D28D9] mb-2" />
+            <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-[#FFF1F0] text-[#202020]">
+              <Compass className="w-9 h-9 text-[#FF6154] mb-2" />
               <p className="text-sm font-semibold">6-Chapter Launch Playbook</p>
             </div>
           ) : (
@@ -177,19 +178,19 @@ export function AcademyView({
               onClick={() => handleSelectChapter(ch.id)}
               className={`p-3.5 rounded-xl border text-left transition-colors cursor-pointer ${
                 isCurrent
-                  ? 'border-[#6D28D9] bg-violet-50/70'
-                  : 'border-slate-200 bg-white hover:bg-slate-50'
+                  ? 'border-[#FF6154] bg-[#FFF1F0]'
+                  : 'border-[#EAEAEA] bg-white hover:bg-[#FAFAFA] hover:border-[#D4D4D4]'
               }`}
             >
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-mono font-semibold text-[#6D28D9] tabular-nums">
+                <span className="font-mono font-bold text-[#FF6154] tabular-nums">
                   Ch. {ch.number}
                 </span>
-                <span className="font-mono text-[11px] text-slate-500 tabular-nums">
+                <span className="font-mono text-[11px] text-[#777777] tabular-nums">
                   {doneInCh}/{ch.lessons.length}
                 </span>
               </div>
-              <p className="text-xs font-semibold text-[#0F172A] leading-snug line-clamp-2">
+              <p className="text-xs font-bold text-[#202020] leading-snug line-clamp-2">
                 {ch.title}
               </p>
             </button>
@@ -201,12 +202,12 @@ export function AcademyView({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left: Lesson List & Chapter Checklist */}
         <div className="lg:col-span-4 space-y-5">
-          <div className="bg-white border border-slate-200 rounded-xl p-5">
-            <p className="text-xs font-medium text-slate-500 mb-1">
+          <PhCard padding="p-5">
+            <p className="text-xs font-medium text-[#777777] mb-1">
               Chapter {activeChapter.number}
             </p>
-            <h2 className="text-base font-bold text-[#0F172A] mb-1">{activeChapter.title}</h2>
-            <p className="text-xs text-slate-600 leading-relaxed mb-4">
+            <h2 className="text-base font-bold text-[#202020] mb-1">{activeChapter.title}</h2>
+            <p className="text-xs text-[#555555] leading-relaxed mb-4">
               {activeChapter.subtitle}
             </p>
 
@@ -221,20 +222,20 @@ export function AcademyView({
                     onClick={() => setSelectedLessonId(lesson.id)}
                     className={`w-full px-3 py-2.5 rounded-lg text-left flex items-start gap-2.5 transition-colors cursor-pointer ${
                       isSelected
-                        ? 'bg-[#0F172A] text-white'
-                        : 'hover:bg-slate-50 text-[#0F172A]'
+                        ? 'bg-[#FF6154] text-white'
+                        : 'hover:bg-[#F7F7F7] text-[#202020]'
                     }`}
                   >
                     {done ? (
                       <CheckCircle2
                         className={`w-4 h-4 shrink-0 mt-0.5 ${
-                          isSelected ? 'text-emerald-400' : 'text-emerald-600'
+                          isSelected ? 'text-white' : 'text-[#16A34A]'
                         }`}
                       />
                     ) : (
                       <Circle
                         className={`w-4 h-4 shrink-0 mt-0.5 ${
-                          isSelected ? 'text-slate-400' : 'text-slate-300'
+                          isSelected ? 'text-white/75' : 'text-[#CCCCCC]'
                         }`}
                       />
                     )}
@@ -244,7 +245,7 @@ export function AcademyView({
                       </p>
                       <p
                         className={`text-[11px] mt-0.5 tabular-nums ${
-                          isSelected ? 'text-slate-300' : 'text-slate-500'
+                          isSelected ? 'text-white/85' : 'text-[#777777]'
                         }`}
                       >
                         {lesson.readMinutes} min read
@@ -254,14 +255,14 @@ export function AcademyView({
                 );
               })}
             </div>
-          </div>
+          </PhCard>
 
           {/* Actionable Chapter Checklist */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5">
-            <h3 className="text-sm font-bold text-[#0F172A] mb-1">
+          <PhCard padding="p-5">
+            <h3 className="text-sm font-bold text-[#202020] mb-1">
               Chapter {activeChapter.number} Action Checklist
             </h3>
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs text-[#777777] mb-4">
               Complete these practical tasks before moving to the next phase.
             </p>
             <div className="space-y-2.5">
@@ -275,36 +276,42 @@ export function AcademyView({
                     onClick={() => handleToggleChecklistClick(item.id)}
                     className={`w-full p-3 rounded-lg border text-left flex items-start gap-2.5 transition-colors cursor-pointer ${
                       checked
-                        ? 'border-emerald-200 bg-emerald-50/50 text-[#0F172A]'
-                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                        ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#202020]'
+                        : 'border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-[#444444]'
                     }`}
                   >
                     {checked ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0 mt-0.5" />
                     ) : (
-                      <Circle className="w-4 h-4 text-slate-300 shrink-0 mt-0.5" />
+                      <Circle className="w-4 h-4 text-[#CCCCCC] shrink-0 mt-0.5" />
                     )}
-                    <span className={`text-xs leading-relaxed ${checked ? 'line-through text-slate-500' : ''}`}>
+                    <span
+                      className={`text-xs leading-relaxed ${
+                        checked ? 'line-through text-[#777777]' : ''
+                      }`}
+                    >
                       {item.label}
                     </span>
                   </button>
                 );
               })}
             </div>
-          </div>
+          </PhCard>
         </div>
 
         {/* Right: Lesson Detail Content */}
-        <div className="lg:col-span-8 bg-white border border-slate-200 rounded-xl p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+        <PhCard className="lg:col-span-8" padding="p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#EAEAEA]">
             <div>
-              <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-[#6D28D9]" />
-                <span>Chapter {activeChapter.number}: {activeChapter.title}</span>
+              <div className="flex items-center gap-2 text-xs text-[#777777] mb-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-[#FF6154]" />
+                <span>
+                  Chapter {activeChapter.number}: {activeChapter.title}
+                </span>
                 <span aria-hidden="true">·</span>
                 <span className="tabular-nums">{activeLesson.readMinutes} min read</span>
               </div>
-              <h2 className="text-xl font-bold text-[#0F172A]">{activeLesson.title}</h2>
+              <h2 className="text-xl font-bold text-[#202020]">{activeLesson.title}</h2>
             </div>
 
             <button
@@ -313,8 +320,8 @@ export function AcademyView({
               onClick={() => handleToggleLessonClick(activeLesson.id)}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 lessonIsDone
-                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100'
-                  : 'bg-[#6D28D9] hover:bg-[#5B21B6] text-white'
+                  ? 'bg-[#F0FDF4] border border-[#BBF7D0] text-[#15803D] hover:bg-[#DCFCE7]'
+                  : 'bg-[#FF6154] hover:bg-[#E54B3E] text-white'
               }`}
             >
               <CheckCircle2 className="w-4 h-4" />
@@ -324,21 +331,24 @@ export function AcademyView({
 
           <div className="mt-6 space-y-6">
             <div>
-              <h3 className="text-xs font-semibold text-slate-500 mb-2">Plain-English Explanation</h3>
-              <p className="text-sm sm:text-base text-slate-700 leading-relaxed">
+              <h3 className="text-xs font-semibold text-[#777777] mb-2">
+                Plain-English Explanation
+              </h3>
+              <p className="text-sm sm:text-base text-[#333333] leading-relaxed">
                 {activeLesson.explanation}
               </p>
             </div>
 
             {activeLesson.steps && activeLesson.steps.length > 0 && (
-              <div className="border border-slate-200 rounded-xl p-5 bg-white">
-                <h3 className="text-xs font-semibold text-[#0F172A] mb-3">
-                  Step-by-Step Tutorial
-                </h3>
+              <div className="border border-[#EAEAEA] rounded-xl p-5 bg-white">
+                <h3 className="text-xs font-bold text-[#202020] mb-3">Step-by-Step Tutorial</h3>
                 <ol className="space-y-2.5">
                   {activeLesson.steps.map((step, idx) => (
-                    <li key={idx} className="flex items-start gap-3 text-sm text-slate-700 leading-relaxed">
-                      <span className="w-5 h-5 rounded-full bg-violet-50 text-[#6D28D9] font-mono text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 tabular-nums">
+                    <li
+                      key={idx}
+                      className="flex items-start gap-3 text-sm text-[#444444] leading-relaxed"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-[#FFF1F0] text-[#FF6154] font-mono text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 tabular-nums">
                         {idx + 1}
                       </span>
                       <span>{step}</span>
@@ -348,45 +358,49 @@ export function AcademyView({
               </div>
             )}
 
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
-              <h3 className="text-xs font-semibold text-[#6D28D9] mb-2">Practical Example</h3>
-              <p className="text-sm text-[#0F172A] leading-relaxed">
+            <div className="bg-[#F7F7F7] border border-[#EAEAEA] rounded-xl p-5">
+              <h3 className="text-xs font-bold text-[#FF6154] mb-2">Practical Example</h3>
+              <p className="text-sm text-[#202020] leading-relaxed">
                 {activeLesson.practicalExample}
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border border-emerald-200 bg-emerald-50/40 rounded-xl p-5">
-                <div className="flex items-center gap-2 text-emerald-800 font-semibold text-xs mb-3">
+              <div className="border border-[#BBF7D0] bg-[#F0FDF4] rounded-xl p-5">
+                <div className="flex items-center gap-2 text-[#15803D] font-bold text-xs mb-3">
                   <ThumbsUp className="w-4 h-4" />
                   <span>Do’s</span>
                 </div>
-                <ul className="space-y-2.5 text-xs sm:text-sm text-slate-700">
+                <ul className="space-y-2.5 text-xs sm:text-sm text-[#333333]">
                   {activeLesson.dos.map((d) => (
-                    <li key={d} className="leading-relaxed">• {d}</li>
+                    <li key={d} className="leading-relaxed">
+                      • {d}
+                    </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="border border-orange-200 bg-orange-50/40 rounded-xl p-5">
-                <div className="flex items-center gap-2 text-[#C2410C] font-semibold text-xs mb-3">
+              <div className="border border-[#FFD6D2] bg-[#FFF1F0] rounded-xl p-5">
+                <div className="flex items-center gap-2 text-[#CC3D31] font-bold text-xs mb-3">
                   <ThumbsDown className="w-4 h-4" />
                   <span>Don’ts</span>
                 </div>
-                <ul className="space-y-2.5 text-xs sm:text-sm text-slate-700">
+                <ul className="space-y-2.5 text-xs sm:text-sm text-[#333333]">
                   {activeLesson.donts.map((d) => (
-                    <li key={d} className="leading-relaxed">• {d}</li>
+                    <li key={d} className="leading-relaxed">
+                      • {d}
+                    </li>
                   ))}
                 </ul>
               </div>
             </div>
 
-            {/* Inline AI Plain-English Explainer (Works even without Product Hunt MCP) */}
-            <div className="border border-violet-200 bg-violet-50/40 rounded-xl p-5 space-y-3">
+            {/* Inline AI Plain-English Explainer */}
+            <div className="border border-[#FFD6D2] bg-[#FFF1F0]/60 rounded-xl p-5 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#6D28D9]" />
-                  <h3 className="text-xs font-bold text-[#0F172A]">
+                  <Sparkles className="w-4 h-4 text-[#FF6154]" />
+                  <h3 className="text-xs font-bold text-[#202020]">
                     Ask AI to Explain in Simple English
                   </h3>
                 </div>
@@ -394,7 +408,7 @@ export function AcademyView({
                   type="button"
                   disabled={aiLoading}
                   onClick={() => handleAskAiExplain('')}
-                  className="px-3 py-1.5 rounded-lg bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
+                  className="px-3.5 py-1.5 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
                 >
                   {aiLoading
                     ? 'Explaining...'
@@ -417,31 +431,27 @@ export function AcademyView({
                   value={aiQuestion}
                   onChange={(e) => setAiQuestion(e.target.value)}
                   placeholder="Optional: ask a specific question about this lesson..."
-                  className="flex-1 px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs text-[#0F172A]"
+                  className="flex-1 px-3 py-2 rounded-lg border border-[#EAEAEA] bg-white text-xs text-[#202020] focus:outline-none focus:border-[#FF6154]"
                 />
                 <button
                   type="submit"
                   disabled={aiLoading || !aiQuestion.trim()}
-                  className="px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-[#0F172A] cursor-pointer disabled:opacity-50"
+                  className="px-3.5 py-2 rounded-lg border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-xs font-semibold text-[#202020] cursor-pointer disabled:opacity-50"
                 >
                   Ask Coach
                 </button>
               </form>
 
-              {aiError && (
-                <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
-                  {aiError}
-                </div>
-              )}
+              {aiError && <PhBanner tone="error">{aiError}</PhBanner>}
 
               {aiExplanation && (
-                <div className="p-3.5 rounded-lg bg-white border border-violet-200 text-xs sm:text-sm text-[#0F172A] leading-relaxed whitespace-pre-line">
+                <div className="p-3.5 rounded-lg bg-white border border-[#FFD6D2] text-xs sm:text-sm text-[#202020] leading-relaxed whitespace-pre-line">
                   {aiExplanation}
                 </div>
               )}
             </div>
           </div>
-        </div>
+        </PhCard>
       </div>
     </div>
   );

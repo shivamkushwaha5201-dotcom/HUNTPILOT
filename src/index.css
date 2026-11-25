@@ -6,21 +6,65 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+:root {
+  --ph-orange: #FF6154;
+  --ph-orange-hover: #E54B3E;
+  --ph-orange-active: #CC3D31;
+  --ph-orange-soft: #FFF1F0;
+  --ph-orange-border: #FFD6D2;
+  --ph-bg: #F7F7F7;
+  --ph-surface: #FFFFFF;
+  --ph-surface-subtle: #F3F3F3;
+  --ph-text: #202020;
+  --ph-text-secondary: #777777;
+  --ph-border: #EAEAEA;
+}
+
 @layer base {
   body {
     font-family: var(--font-sans);
-    color: #0F172A;
-    background-color: #FFFFFF;
+    color: var(--ph-text);
+    background-color: var(--ph-bg);
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
+    color: var(--ph-text);
+  }
+
+  input, textarea, select {
+    color: var(--ph-text);
+  }
+
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid rgba(255, 97, 84, 0.35);
+    outline-offset: 1px;
   }
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Subtle PH-inspired skeleton shimmer */
+@keyframes ph-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.ph-skeleton {
+  background: linear-gradient(90deg, #F3F3F3 25%, #EAEAEA 50%, #F3F3F3 75%);
+  background-size: 200% 100%;
+  animation: ph-shimmer 1.6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

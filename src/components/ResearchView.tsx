@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import {
-  AlertTriangle,
   ArrowRight,
   Award,
   CheckCircle2,
@@ -19,6 +19,7 @@ import {
 import { CompetitorEntry, CompetitorResearch, Project } from '../types';
 import { authorizedFetch, formatTimestamp } from '../utils/validation';
 import { UseProductHuntMcpResult } from '../hooks/useProductHuntMcp';
+import { PhBanner, PhCard, PhProductThumbnail, PhVoteBox } from './ui/PhPrimitives';
 
 interface ParsedMcpResponse {
   summaryText: string;
@@ -74,6 +75,7 @@ interface ProductListItem {
   slug?: string;
   tagline?: string;
   url?: string;
+  thumbnailUrl?: string;
   pricing?: string;
   rating?: number | null;
   points?: number | null;
@@ -121,6 +123,14 @@ function extractProductList(data: Record<string, unknown> | null): ProductListIt
           : typeof item.url === 'string'
           ? item.url
           : undefined;
+      const thumbnailUrl =
+        typeof productObj.thumbnail_url === 'string'
+          ? productObj.thumbnail_url
+          : typeof productObj.thumbnailUrl === 'string'
+          ? productObj.thumbnailUrl
+          : typeof item.thumbnail_url === 'string'
+          ? item.thumbnail_url
+          : undefined;
       const pricing =
         typeof productObj.pricing === 'string'
           ? productObj.pricing
@@ -158,6 +168,7 @@ function extractProductList(data: Record<string, unknown> | null): ProductListIt
         slug,
         tagline,
         url,
+        thumbnailUrl,
         pricing,
         rating,
         points,
@@ -168,7 +179,10 @@ function extractProductList(data: Record<string, unknown> | null): ProductListIt
     });
 }
 
-function getProfileField(data: Record<string, unknown> | null | undefined, keys: string[]): unknown {
+function getProfileField(
+  data: Record<string, unknown> | null | undefined,
+  keys: string[]
+): unknown {
   if (!data) return undefined;
   const nested =
     data.product && typeof data.product === 'object'
@@ -194,9 +208,13 @@ export function ResearchView({
   const [subTab, setSubTab] = useState<ResearchTab>('search');
 
   // Search & AI Synthesis state
-  const [query, setQuery] = useState(activeProject?.category ? `${activeProject.category}` : 'AI developer tools');
+  const [query, setQuery] = useState(
+    activeProject?.category ? `${activeProject.category}` : 'AI developer tools'
+  );
   const [categorySlug, setCategorySlug] = useState('');
-  const [pricingFilter, setPricingFilter] = useState<'any' | 'free' | 'free_options' | 'payment_required'>('any');
+  const [pricingFilter, setPricingFilter] = useState<
+    'any' | 'free' | 'free_options' | 'payment_required'
+  >('any');
   const [openSourceOnly, setOpenSourceOnly] = useState(false);
   const [ycOnly, setYcOnly] = useState(false);
   const [productDescription, setProductDescription] = useState(activeProject?.description || '');
@@ -217,14 +235,19 @@ export function ResearchView({
   const [altLoading, setAltLoading] = useState(false);
 
   // Leaderboard state
-  const [leaderboardPeriod, setLeaderboardPeriod] = useState<'today' | 'day' | 'week' | 'month' | 'year'>('today');
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState<
+    'today' | 'day' | 'week' | 'month' | 'year'
+  >('today');
   const [leaderboardDateValue, setLeaderboardDateValue] = useState('');
   const [leaderboardResults, setLeaderboardResults] = useState<ProductListItem[]>([]);
   const [leaderboardSummaryText, setLeaderboardSummaryText] = useState('');
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
   // Categories state
-  const [categoriesData, setCategoriesData] = useState<{ summaryText: string; items: Array<{ name: string; slug: string }> }>({
+  const [categoriesData, setCategoriesData] = useState<{
+    summaryText: string;
+    items: Array<{ name: string; slug: string }>;
+  }>({
     summaryText: '',
     items: [],
   });
@@ -391,7 +414,10 @@ export function ResearchView({
             if (typeof obj.name === 'string') {
               items.push({
                 name: obj.name,
-                slug: typeof obj.slug === 'string' ? obj.slug : obj.name.toLowerCase().replace(/\s+/g, '-'),
+                slug:
+                  typeof obj.slug === 'string'
+                    ? obj.slug
+                    : obj.name.toLowerCase().replace(/\s+/g, '-'),
               });
             }
           }
@@ -476,76 +502,65 @@ export function ResearchView({
 
   const renderProductCard = (item: ProductListItem, idx: number) => {
     const identifier = item.slug || item.name;
+    const metaParts: string[] = [];
+    if (item.pricing) metaParts.push(item.pricing);
+    if (typeof item.rating === 'number') metaParts.push(`★ ${item.rating.toFixed(1)}`);
+    if (item.categories?.length) metaParts.push(item.categories.slice(0, 2).join(', '));
+
     return (
       <div
         key={`${identifier}-${idx}`}
-        className="border border-slate-200 rounded-xl p-4 bg-white hover:border-violet-200 transition-colors flex flex-col justify-between gap-3"
+        className="border border-[#EAEAEA] rounded-xl p-4 bg-white hover:border-[#FFD6D2] transition-colors flex flex-col justify-between gap-3"
       >
-        <div className="space-y-1.5">
-          <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <PhProductThumbnail src={item.thumbnailUrl} name={item.name} size="sm" />
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {typeof item.rank === 'number' && (
-                  <span className="px-1.5 py-0.5 rounded bg-orange-50 text-[#C2410C] font-mono text-[11px] font-bold">
-                    #{item.rank}
-                  </span>
+                  <span className="font-mono text-xs font-bold text-[#FF6154]">#{item.rank}</span>
                 )}
-                <h3 className="text-sm font-bold text-[#0F172A] truncate">{item.name}</h3>
+                <h3 className="text-sm font-bold text-[#202020] truncate">{item.name}</h3>
+                {item.url && (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#999999] hover:text-[#FF6154] shrink-0"
+                    title="View on Product Hunt"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
               </div>
               {item.tagline && (
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">{item.tagline}</p>
+                <p className="text-xs text-[#555555] mt-1 leading-relaxed line-clamp-2">
+                  {item.tagline}
+                </p>
+              )}
+              {metaParts.length > 0 && (
+                <p className="text-[11px] text-[#777777] mt-1.5 truncate">
+                  {metaParts.join(' · ')}
+                </p>
               )}
             </div>
-            {item.url && (
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-slate-400 hover:text-[#6D28D9] shrink-0"
-                title="View on Product Hunt"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-600">
-            {item.pricing && (
-              <span className="px-2 py-0.5 rounded bg-slate-100 font-medium">
-                {item.pricing}
-              </span>
-            )}
-            {typeof item.points === 'number' && (
-              <span className="px-2 py-0.5 rounded bg-orange-50 text-[#C2410C] font-mono font-semibold tabular-nums">
-                {item.points} pts
-              </span>
-            )}
-            {typeof item.rating === 'number' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-mono">
-                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                {item.rating.toFixed(1)}
-              </span>
-            )}
-            {item.categories?.slice(0, 2).map((c) => (
-              <span key={c} className="px-2 py-0.5 rounded bg-violet-50 text-[#6D28D9]">
-                {c}
-              </span>
-            ))}
-          </div>
+          {typeof item.points === 'number' && <PhVoteBox points={item.points} compact />}
         </div>
 
-        <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+        <div className="flex items-center gap-2 pt-2.5 border-t border-[#F0F0F0]">
           <button
             type="button"
             onClick={() => handleInspectProfile(identifier)}
-            className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-[#0F172A] cursor-pointer"
+            className="px-3 py-1.5 rounded-lg border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-xs font-semibold text-[#202020] cursor-pointer"
           >
             View Profile
           </button>
           <button
             type="button"
             onClick={() => handleAddToCompare(identifier)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 hover:bg-violet-100 text-xs font-semibold text-[#6D28D9] cursor-pointer"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#FFD6D2] bg-[#FFF1F0] hover:bg-[#FFE4E1] text-xs font-semibold text-[#FF6154] cursor-pointer"
           >
             <Plus className="w-3 h-3" />
             Compare
@@ -558,22 +573,22 @@ export function ResearchView({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
+        <h1 className="text-2xl font-bold text-[#202020] tracking-tight">
           Competitor Research &amp; Live Product Hunt Explorer
         </h1>
-        <p className="text-sm text-slate-600 mt-1">
+        <p className="text-sm text-[#777777] mt-1">
           Search real Product Hunt launches, inspect product profiles and sentiment, browse leaderboards, and compare competitors side-by-side via the official MCP server.
         </p>
       </div>
 
       {/* Product Hunt MCP Connection Status Card */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <PhCard padding="p-5" className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start gap-3.5">
           <div
-            className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+            className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${
               mcp.mcpStatus?.serverReachable
-                ? 'bg-emerald-50 text-emerald-700'
-                : 'bg-amber-50 text-amber-700'
+                ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#16A34A]'
+                : 'bg-[#FFFBEB] border-[#FDE68A] text-[#D97706]'
             }`}
           >
             {mcp.mcpStatus?.serverReachable ? (
@@ -583,11 +598,11 @@ export function ResearchView({
             )}
           </div>
           <div>
-            <p className="text-sm font-bold text-[#0F172A]">
+            <p className="text-sm font-bold text-[#202020]">
               Official Product Hunt MCP:{' '}
               {mcp.mcpStatus?.serverReachable ? 'Connected (Live Data)' : 'Checking Server...'}
             </p>
-            <p className="text-xs text-slate-600 mt-1 leading-relaxed max-w-2xl">
+            <p className="text-xs text-[#555555] mt-1 leading-relaxed max-w-2xl">
               {mcp.mcpStatus?.serverReachable
                 ? `Connected to ${mcp.mcpStatus.endpointHost} (${mcp.mcpStatus.tools.length} official tools discovered). ${
                     mcp.mcpStatus.accountConnected
@@ -604,7 +619,7 @@ export function ResearchView({
             type="button"
             disabled={mcp.testing}
             onClick={() => mcp.testConnection()}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-[#0F172A] cursor-pointer disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-xs font-semibold text-[#202020] cursor-pointer disabled:opacity-60"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${mcp.testing ? 'animate-spin' : ''}`} />
             {mcp.testing ? 'Checking...' : 'Test MCP'}
@@ -614,16 +629,16 @@ export function ResearchView({
               type="button"
               disabled={mcp.connecting}
               onClick={() => mcp.connectProductHunt()}
-              className="px-3.5 py-2 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold cursor-pointer disabled:opacity-60"
+              className="px-3.5 py-2 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-xs font-semibold cursor-pointer disabled:opacity-60"
             >
               {mcp.connecting ? 'Connecting...' : 'Connect Account'}
             </button>
           )}
         </div>
-      </div>
+      </PhCard>
 
       {/* Mode Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+      <div className="flex flex-wrap gap-2 border-b border-[#EAEAEA] pb-3">
         {[
           { id: 'search' as const, label: 'Search & Positioning', icon: Search },
           { id: 'alternatives' as const, label: 'Alternatives', icon: Layers },
@@ -642,41 +657,43 @@ export function ResearchView({
               key={tab.id}
               type="button"
               onClick={() => setSubTab(tab.id)}
-              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              className={`relative inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 active
-                  ? 'bg-[#0F172A] text-white'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                  ? 'text-white'
+                  : 'bg-white border border-[#EAEAEA] text-[#555555] hover:bg-[#F7F7F7] hover:text-[#202020]'
               }`}
             >
-              <Icon className="w-3.5 h-3.5" />
-              {tab.label}
+              {active && (
+                <motion.span
+                  layoutId="research-subtab"
+                  transition={{ type: 'spring', stiffness: 460, damping: 35 }}
+                  className="absolute inset-0 bg-[#FF6154] rounded-lg"
+                />
+              )}
+              <Icon className="relative z-10 w-3.5 h-3.5" />
+              <span className="relative z-10">{tab.label}</span>
             </button>
           );
         })}
       </div>
 
-      {error && (
-        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+      {error && <PhBanner tone="error">{error}</PhBanner>}
 
       {/* Product Profile Modal/Drawer Banner */}
       {(profileLoading || activeProfile) && (
-        <div className="bg-white border-2 border-[#6D28D9] rounded-xl p-6 space-y-4">
-          <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-100">
+        <div className="bg-white border-2 border-[#FF6154] rounded-xl p-6 space-y-4">
+          <div className="flex items-start justify-between gap-4 pb-3 border-b border-[#EAEAEA]">
             <div>
-              <p className="text-xs font-semibold text-[#6D28D9]">
+              <p className="text-xs font-semibold text-[#FF6154]">
                 Official Product Hunt Profile (MCP)
               </p>
-              <h2 className="text-lg font-bold text-[#0F172A]">
+              <h2 className="text-lg font-bold text-[#202020]">
                 {profileLoading
                   ? 'Loading product profile...'
                   : String(getProfileField(activeProfile?.data, ['name']) || activeProfile?.name)}
               </h2>
               {!profileLoading && Boolean(getProfileField(activeProfile?.data, ['tagline'])) && (
-                <p className="text-sm text-slate-600 mt-1">
+                <p className="text-sm text-[#555555] mt-1">
                   {String(getProfileField(activeProfile?.data, ['tagline']))}
                 </p>
               )}
@@ -684,14 +701,14 @@ export function ResearchView({
             <button
               type="button"
               onClick={() => setActiveProfile(null)}
-              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-[#F3F3F3] text-[#777777] cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {!profileLoading && activeProfile && (
-            <div className="space-y-4 text-xs sm:text-sm text-slate-700">
+            <div className="space-y-4 text-xs sm:text-sm text-[#444444]">
               {Boolean(getProfileField(activeProfile.data, ['description'])) && (
                 <p className="leading-relaxed">
                   {String(getProfileField(activeProfile.data, ['description']))}
@@ -699,29 +716,30 @@ export function ResearchView({
               )}
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                  <p className="text-slate-500">Pricing</p>
-                  <p className="font-semibold text-[#0F172A] mt-0.5">
+                <div className="p-3 rounded-lg bg-[#F7F7F7] border border-[#EAEAEA]">
+                  <p className="text-[#777777]">Pricing</p>
+                  <p className="font-bold text-[#202020] mt-0.5">
                     {String(getProfileField(activeProfile.data, ['pricing']) || 'Unspecified')}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                  <p className="text-slate-500">Rating</p>
-                  <p className="font-semibold text-[#0F172A] mt-0.5 tabular-nums">
+                <div className="p-3 rounded-lg bg-[#F7F7F7] border border-[#EAEAEA]">
+                  <p className="text-[#777777]">Rating</p>
+                  <p className="font-bold text-[#202020] mt-0.5 tabular-nums">
                     {String(getProfileField(activeProfile.data, ['rating']) ?? 'N/A')}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                  <p className="text-slate-500">Reviews</p>
-                  <p className="font-semibold text-[#0F172A] mt-0.5 tabular-nums">
+                <div className="p-3 rounded-lg bg-[#F7F7F7] border border-[#EAEAEA]">
+                  <p className="text-[#777777]">Reviews</p>
+                  <p className="font-bold text-[#202020] mt-0.5 tabular-nums">
                     {String(
-                      getProfileField(activeProfile.data, ['reviews_count', 'review_count']) ?? 'N/A'
+                      getProfileField(activeProfile.data, ['reviews_count', 'review_count']) ??
+                        'N/A'
                     )}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                  <p className="text-slate-500">Top Launch Points</p>
-                  <p className="font-semibold text-[#0F172A] mt-0.5 tabular-nums">
+                <div className="p-3 rounded-lg bg-[#F7F7F7] border border-[#EAEAEA]">
+                  <p className="text-[#777777]">Top Launch Points</p>
+                  <p className="font-bold text-[#FF6154] mt-0.5 tabular-nums">
                     {String(
                       getProfileField(activeProfile.data, ['top_launch_points', 'points']) ?? 'N/A'
                     )}
@@ -730,7 +748,7 @@ export function ResearchView({
               </div>
 
               {activeProfile.summaryText && (
-                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700 whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
+                <div className="p-4 rounded-lg bg-[#F7F7F7] border border-[#EAEAEA] text-xs text-[#444444] whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
                   {activeProfile.summaryText}
                 </div>
               )}
@@ -739,7 +757,7 @@ export function ResearchView({
                 <button
                   type="button"
                   onClick={() => handleAddToCompare(activeProfile.name)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-semibold cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-xs font-semibold cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add to Side-by-Side Compare
@@ -749,7 +767,7 @@ export function ResearchView({
                     href={String(getProfileField(activeProfile.data, ['url']))}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#6D28D9] hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#FF6154] hover:underline"
                   >
                     Open on Product Hunt <ExternalLink className="w-3.5 h-3.5" />
                   </a>
@@ -766,12 +784,12 @@ export function ResearchView({
           <div className="lg:col-span-5 space-y-5">
             <form
               onSubmit={handleDirectSearch}
-              className="bg-white border border-slate-200 rounded-xl p-6 space-y-4"
+              className="bg-white border border-[#EAEAEA] rounded-xl p-6 space-y-4"
             >
-              <h2 className="text-base font-bold text-[#0F172A]">Search Official Product Hunt</h2>
+              <h2 className="text-base font-bold text-[#202020]">Search Official Product Hunt</h2>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-[#202020] mb-1">
                   Search Keyword / Product Space
                 </label>
                 <input
@@ -780,13 +798,13 @@ export function ResearchView({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="e.g., AI changelog, note taking, cursor"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                  <label className="block text-xs font-medium text-[#202020] mb-1">
                     Category Slug (optional)
                   </label>
                   <input
@@ -795,11 +813,11 @@ export function ResearchView({
                     value={categorySlug}
                     onChange={(e) => setCategorySlug(e.target.value)}
                     placeholder="e.g., developer-tools"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                  <label className="block text-xs font-medium text-[#202020] mb-1">
                     Pricing Filter
                   </label>
                   <select
@@ -809,7 +827,7 @@ export function ResearchView({
                         e.target.value as 'any' | 'free' | 'free_options' | 'payment_required'
                       )
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white"
+                    className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm bg-white focus:outline-none focus:border-[#FF6154]"
                   >
                     <option value="any">Any Pricing</option>
                     <option value="free">Free</option>
@@ -819,12 +837,13 @@ export function ResearchView({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-4 text-xs text-slate-700">
+              <div className="flex flex-wrap gap-4 text-xs text-[#444444]">
                 <label className="inline-flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={openSourceOnly}
                     onChange={(e) => setOpenSourceOnly(e.target.checked)}
+                    className="accent-[#FF6154]"
                   />
                   Open Source only
                 </label>
@@ -833,6 +852,7 @@ export function ResearchView({
                     type="checkbox"
                     checked={ycOnly}
                     onChange={(e) => setYcOnly(e.target.checked)}
+                    className="accent-[#FF6154]"
                   />
                   YC-backed only
                 </label>
@@ -841,14 +861,14 @@ export function ResearchView({
               <button
                 type="submit"
                 disabled={searching}
-                className="w-full py-2.5 px-4 rounded-lg bg-[#0F172A] hover:bg-slate-800 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
+                className="w-full py-2.5 px-4 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
               >
                 <Search className={`w-4 h-4 ${searching ? 'animate-spin' : ''}`} />
                 {searching ? 'Searching Product Hunt...' : 'Search Live Products'}
               </button>
 
-              <div className="pt-4 border-t border-slate-100 space-y-3">
-                <p className="text-xs font-semibold text-[#6D28D9]">
+              <div className="pt-4 border-t border-[#EAEAEA] space-y-3">
+                <p className="text-xs font-semibold text-[#FF6154]">
                   AI Positioning Synthesis (Grounded in Live MCP Results)
                 </p>
                 <textarea
@@ -857,7 +877,7 @@ export function ResearchView({
                   value={productDescription}
                   onChange={(e) => setProductDescription(e.target.value)}
                   placeholder="Your product description for differentiation angles..."
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs"
+                  className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-xs focus:outline-none focus:border-[#FF6154]"
                 />
                 <input
                   type="text"
@@ -865,13 +885,13 @@ export function ResearchView({
                   value={usp}
                   onChange={(e) => setUsp(e.target.value)}
                   placeholder="Your key differentiator (USP)..."
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs"
+                  className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-xs focus:outline-none focus:border-[#FF6154]"
                 />
                 <button
                   type="button"
                   disabled={synthesizing}
                   onClick={handleSynthesizeReport}
-                  className="w-full py-2.5 px-4 rounded-lg bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
+                  className="w-full py-2.5 px-4 rounded-lg border border-[#EAEAEA] bg-[#F7F7F7] hover:bg-[#FFF1F0] hover:border-[#FFD6D2] text-[#202020] text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
                 >
                   {synthesizing
                     ? 'Synthesizing Positioning Brief...'
@@ -881,23 +901,23 @@ export function ResearchView({
             </form>
 
             {researchReports.length > 0 && (
-              <div className="bg-white border border-slate-200 rounded-xl p-5">
-                <p className="text-xs font-semibold text-slate-500 mb-3">
+              <PhCard padding="p-5">
+                <p className="text-xs font-semibold text-[#777777] mb-3">
                   Saved Positioning Briefs ({researchReports.length})
                 </p>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {researchReports.map((rep) => (
                     <div
                       key={rep.id}
-                      className="p-2.5 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-between gap-2"
+                      className="p-2.5 rounded-lg border border-[#EAEAEA] bg-[#F7F7F7] flex items-center justify-between gap-2"
                     >
                       <button
                         type="button"
                         onClick={() => setCurrentReport(rep)}
                         className="text-left min-w-0 flex-1 cursor-pointer"
                       >
-                        <p className="text-xs font-semibold text-[#0F172A] truncate">{rep.query}</p>
-                        <p className="text-[11px] text-slate-500 truncate">
+                        <p className="text-xs font-semibold text-[#202020] truncate">{rep.query}</p>
+                        <p className="text-[11px] text-[#777777] truncate">
                           {rep.category} · {rep.dataSource === 'mcp' ? 'Live MCP' : 'Framework'} ·{' '}
                           {formatTimestamp(rep.createdAt)}
                         </p>
@@ -905,25 +925,25 @@ export function ResearchView({
                       <button
                         type="button"
                         onClick={() => onDeleteResearch(rep.id)}
-                        className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                        className="p-1 text-[#777777] hover:text-[#DC2626] cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
                 </div>
-              </div>
+              </PhCard>
             )}
           </div>
 
           <div className="lg:col-span-7 space-y-5">
             {(liveResults.length > 0 || liveSummaryText) && (
-              <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+              <PhCard padding="p-5" className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-[#0F172A]">
+                  <h3 className="text-sm font-bold text-[#202020]">
                     Live Product Hunt Results ({liveResults.length})
                   </h3>
-                  <span className="text-[11px] font-medium text-emerald-700">
+                  <span className="text-[11px] font-semibold text-[#16A34A]">
                     Official Product Hunt MCP
                   </span>
                 </div>
@@ -932,21 +952,21 @@ export function ResearchView({
                     {liveResults.map(renderProductCard)}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-600 whitespace-pre-wrap">{liveSummaryText}</p>
+                  <p className="text-xs text-[#555555] whitespace-pre-wrap">{liveSummaryText}</p>
                 )}
-              </div>
+              </PhCard>
             )}
 
             {currentReport && (
-              <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
-                <div className="pb-3 border-b border-slate-100 flex flex-wrap items-start justify-between gap-3">
+              <PhCard className="space-y-5">
+                <div className="pb-3 border-b border-[#EAEAEA] flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold text-[#6D28D9]">
+                    <p className="text-xs font-semibold text-[#FF6154]">
                       {currentReport.dataSource === 'mcp'
                         ? 'Source: Official Product Hunt MCP + AI Positioning Analysis'
                         : 'Source: Positioning Brief'}
                     </p>
-                    <h2 className="text-lg font-bold text-[#0F172A] mt-0.5">
+                    <h2 className="text-lg font-bold text-[#202020] mt-0.5">
                       Competitive Positioning Brief
                     </h2>
                   </div>
@@ -966,7 +986,7 @@ export function ResearchView({
                           competitors: currentReport.competitors || [],
                         })
                       }
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-xs font-semibold cursor-pointer shrink-0"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-xs font-semibold cursor-pointer shrink-0"
                     >
                       Send to Launch Analyzer
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -975,17 +995,20 @@ export function ResearchView({
                 </div>
 
                 <div>
-                  <h3 className="text-xs font-semibold text-slate-500 mb-1.5">Strategic Summary</h3>
-                  <p className="text-sm text-slate-700 leading-relaxed">{currentReport.summary}</p>
+                  <h3 className="text-xs font-semibold text-[#777777] mb-1.5">Strategic Summary</h3>
+                  <p className="text-sm text-[#444444] leading-relaxed">{currentReport.summary}</p>
                 </div>
 
                 <div>
-                  <h3 className="text-xs font-semibold text-slate-500 mb-2">
+                  <h3 className="text-xs font-semibold text-[#777777] mb-2">
                     Differentiation Angles
                   </h3>
-                  <ul className="space-y-2 text-sm text-[#0F172A]">
+                  <ul className="space-y-2 text-sm text-[#202020]">
                     {currentReport.differentiationAngles.map((angle, idx) => (
-                      <li key={idx} className="p-3 rounded-lg bg-violet-50/60 border border-violet-100">
+                      <li
+                        key={idx}
+                        className="p-3 rounded-lg bg-[#FFF1F0]/60 border border-[#FFD6D2]"
+                      >
                         {angle}
                       </li>
                     ))}
@@ -993,35 +1016,35 @@ export function ResearchView({
                 </div>
 
                 <div>
-                  <h3 className="text-xs font-semibold text-slate-500 mb-2">
+                  <h3 className="text-xs font-semibold text-[#777777] mb-2">
                     Real Retrieved Competitors ({currentReport.competitors.length})
                   </h3>
                   {currentReport.competitors.length === 0 ? (
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-[#777777]">
                       No matching Product Hunt products were returned for that query.
                     </p>
                   ) : (
                     <div className="space-y-3">
                       {currentReport.competitors.map((comp, idx) => (
-                        <div key={idx} className="border border-slate-200 rounded-xl p-4 space-y-2">
+                        <div key={idx} className="border border-[#EAEAEA] rounded-xl p-4 space-y-2">
                           <div className="flex items-center justify-between gap-2">
-                            <h4 className="text-sm font-bold text-[#0F172A]">{comp.name}</h4>
-                            <span className="text-[11px] font-medium text-slate-500">
+                            <h4 className="text-sm font-bold text-[#202020]">{comp.name}</h4>
+                            <span className="text-[11px] font-medium text-[#777777]">
                               {comp.sourceNote}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-600 leading-relaxed">
-                            <span className="font-semibold text-[#0F172A]">Positioning:</span>{' '}
+                          <p className="text-xs text-[#555555] leading-relaxed">
+                            <span className="font-semibold text-[#202020]">Positioning:</span>{' '}
                             {comp.positioning}
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs">
-                            <div className="p-2.5 rounded-lg bg-slate-50">
-                              <p className="font-semibold text-slate-700 mb-0.5">Strength</p>
-                              <p className="text-slate-600">{comp.strength}</p>
+                            <div className="p-2.5 rounded-lg bg-[#F7F7F7]">
+                              <p className="font-semibold text-[#202020] mb-0.5">Strength</p>
+                              <p className="text-[#555555]">{comp.strength}</p>
                             </div>
-                            <div className="p-2.5 rounded-lg bg-orange-50/60">
-                              <p className="font-semibold text-[#C2410C] mb-0.5">Gap to Exploit</p>
-                              <p className="text-slate-700">{comp.gapToExploit}</p>
+                            <div className="p-2.5 rounded-lg bg-[#FFF1F0]">
+                              <p className="font-semibold text-[#FF6154] mb-0.5">Gap to Exploit</p>
+                              <p className="text-[#444444]">{comp.gapToExploit}</p>
                             </div>
                           </div>
                         </div>
@@ -1029,7 +1052,7 @@ export function ResearchView({
                     </div>
                   )}
                 </div>
-              </div>
+              </PhCard>
             )}
           </div>
         </div>
@@ -1037,7 +1060,7 @@ export function ResearchView({
 
       {/* TAB 2: ALTERNATIVES LOOKUP */}
       {subTab === 'alternatives' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+        <PhCard className="space-y-5">
           <form onSubmit={handleLookupAlternatives} className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
@@ -1045,12 +1068,12 @@ export function ResearchView({
               value={altProduct}
               onChange={(e) => setAltProduct(e.target.value)}
               placeholder="Enter a Product Hunt product name or slug (e.g., cursor, linear, notion)..."
-              className="flex-1 px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm"
+              className="flex-1 px-3.5 py-2.5 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
             />
             <button
               type="submit"
               disabled={altLoading}
-              className="px-5 py-2.5 rounded-lg bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-sm font-semibold cursor-pointer disabled:opacity-60"
+              className="px-5 py-2.5 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-sm font-semibold cursor-pointer disabled:opacity-60"
             >
               {altLoading ? 'Finding Alternatives...' : 'Find Real Alternatives'}
             </button>
@@ -1061,23 +1084,23 @@ export function ResearchView({
               {altResults.map(renderProductCard)}
             </div>
           ) : altSummaryText ? (
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 whitespace-pre-wrap">
+            <div className="p-4 rounded-xl bg-[#F7F7F7] border border-[#EAEAEA] text-xs text-[#444444] whitespace-pre-wrap">
               {altSummaryText}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-[#777777]">
               Search any known product to see real Product Hunt alternatives, ratings, and positioning.
             </p>
           )}
-        </div>
+        </PhCard>
       )}
 
       {/* TAB 3: LEADERBOARDS */}
       {subTab === 'leaderboard' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+        <PhCard className="space-y-5">
           <form onSubmit={handleLoadLeaderboard} className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Period</label>
+              <label className="block text-xs font-medium text-[#202020] mb-1">Period</label>
               <select
                 value={leaderboardPeriod}
                 onChange={(e) => {
@@ -1085,7 +1108,7 @@ export function ResearchView({
                   setLeaderboardPeriod(val);
                   if (val === 'today') setLeaderboardDateValue('');
                 }}
-                className="px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white"
+                className="px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm bg-white focus:outline-none focus:border-[#FF6154]"
               >
                 <option value="today">Today (Live)</option>
                 <option value="day">Specific Day (YYYY-MM-DD)</option>
@@ -1097,9 +1120,7 @@ export function ResearchView({
 
             {leaderboardPeriod !== 'today' && (
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Date Value
-                </label>
+                <label className="block text-xs font-medium text-[#202020] mb-1">Date Value</label>
                 <input
                   type="text"
                   value={leaderboardDateValue}
@@ -1113,7 +1134,7 @@ export function ResearchView({
                       ? '2025-03'
                       : '2025'
                   }
-                  className="px-3 py-2 rounded-lg border border-slate-300 text-sm font-mono"
+                  className="px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm font-mono focus:outline-none focus:border-[#FF6154]"
                 />
               </div>
             )}
@@ -1121,7 +1142,7 @@ export function ResearchView({
             <button
               type="submit"
               disabled={leaderboardLoading}
-              className="px-4 py-2 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold cursor-pointer disabled:opacity-60"
+              className="px-4 py-2 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-sm font-semibold cursor-pointer disabled:opacity-60"
             >
               {leaderboardLoading ? 'Loading...' : 'Load Leaderboard'}
             </button>
@@ -1132,23 +1153,23 @@ export function ResearchView({
               {leaderboardResults.map(renderProductCard)}
             </div>
           ) : leaderboardSummaryText ? (
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 whitespace-pre-wrap">
+            <div className="p-4 rounded-xl bg-[#F7F7F7] border border-[#EAEAEA] text-xs text-[#444444] whitespace-pre-wrap">
               {leaderboardSummaryText}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">Loading leaderboard...</p>
+            <p className="text-sm text-[#777777]">Loading leaderboard...</p>
           )}
-        </div>
+        </PhCard>
       )}
 
       {/* TAB 4: SIDE-BY-SIDE COMPARE (2-3 PRODUCTS) */}
       {subTab === 'compare' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
+        <PhCard className="space-y-5">
           <div>
-            <h2 className="text-base font-bold text-[#0F172A]">
+            <h2 className="text-base font-bold text-[#202020]">
               Compare 2–3 Product Hunt Products Side-by-Side
             </h2>
-            <p className="text-xs text-slate-600 mt-1">
+            <p className="text-xs text-[#777777] mt-1">
               Enter Product Hunt slugs or names (e.g., cursor, windsurf, replit) or click “Compare” on any search result.
             </p>
           </div>
@@ -1165,13 +1186,13 @@ export function ResearchView({
                   setCompareInputs((prev) => prev.map((item, i) => (i === idx ? val : item)));
                 }}
                 placeholder={`Product ${idx + 1}${idx === 2 ? ' (optional)' : ''}`}
-                className="px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                className="px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
               />
             ))}
             <button
               type="submit"
               disabled={comparing}
-              className="px-4 py-2 rounded-lg bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-sm font-semibold cursor-pointer disabled:opacity-60"
+              className="px-4 py-2 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-sm font-semibold cursor-pointer disabled:opacity-60"
             >
               {comparing ? 'Comparing...' : 'Compare Products'}
             </button>
@@ -1182,44 +1203,45 @@ export function ResearchView({
               {compareProfiles.map((entry, idx) => (
                 <div
                   key={`${entry.query}-${idx}`}
-                  className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3"
+                  className="border border-[#EAEAEA] rounded-xl p-4 bg-[#F7F7F7] space-y-3"
                 >
                   {entry.ok ? (
                     <>
                       <div>
-                        <h3 className="text-sm font-bold text-[#0F172A]">
+                        <h3 className="text-sm font-bold text-[#202020]">
                           {String(getProfileField(entry.data, ['name']) || entry.query)}
                         </h3>
                         {Boolean(getProfileField(entry.data, ['tagline'])) && (
-                          <p className="text-xs text-slate-600 mt-1">
+                          <p className="text-xs text-[#555555] mt-1">
                             {String(getProfileField(entry.data, ['tagline']))}
                           </p>
                         )}
                       </div>
-                      <div className="space-y-1.5 text-xs border-t border-slate-200 pt-2">
+                      <div className="space-y-1.5 text-xs border-t border-[#EAEAEA] pt-2">
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Pricing</span>
-                          <span className="font-semibold">
+                          <span className="text-[#777777]">Pricing</span>
+                          <span className="font-semibold text-[#202020]">
                             {String(getProfileField(entry.data, ['pricing']) || 'Unspecified')}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Rating</span>
-                          <span className="font-mono font-semibold">
+                          <span className="text-[#777777]">Rating</span>
+                          <span className="font-mono font-semibold text-[#202020] inline-flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-[#F59E0B] text-[#F59E0B]" />
                             {String(getProfileField(entry.data, ['rating']) ?? 'N/A')}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Reviews</span>
-                          <span className="font-mono font-semibold">
+                          <span className="text-[#777777]">Reviews</span>
+                          <span className="font-mono font-semibold text-[#202020]">
                             {String(
                               getProfileField(entry.data, ['reviews_count', 'review_count']) ?? 'N/A'
                             )}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Top Launch Points</span>
-                          <span className="font-mono font-semibold">
+                          <span className="text-[#777777]">Top Launch Points</span>
+                          <span className="font-mono font-bold text-[#FF6154]">
                             {String(
                               getProfileField(entry.data, ['top_launch_points', 'points']) ?? 'N/A'
                             )}
@@ -1227,13 +1249,13 @@ export function ResearchView({
                         </div>
                       </div>
                       {entry.summaryText && (
-                        <p className="text-[11px] text-slate-600 whitespace-pre-wrap line-clamp-6 border-t border-slate-200 pt-2">
+                        <p className="text-[11px] text-[#555555] whitespace-pre-wrap line-clamp-6 border-t border-[#EAEAEA] pt-2">
                           {entry.summaryText}
                         </p>
                       )}
                     </>
                   ) : (
-                    <div className="text-xs text-red-700">
+                    <div className="text-xs text-[#DC2626]">
                       <p className="font-semibold">{entry.query}</p>
                       <p className="mt-1">{entry.error || 'Profile unavailable.'}</p>
                     </div>
@@ -1242,18 +1264,18 @@ export function ResearchView({
               ))}
             </div>
           )}
-        </div>
+        </PhCard>
       )}
 
       {/* TAB 5: CATEGORIES EXPLORER */}
       {subTab === 'categories' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+        <PhCard className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-bold text-[#0F172A]">
+              <h2 className="text-base font-bold text-[#202020]">
                 Official Product Hunt Categories
               </h2>
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-[#777777]">
                 Click any category to filter Product Hunt search results.
               </p>
             </div>
@@ -1262,12 +1284,12 @@ export function ResearchView({
               value={categoriesFilter}
               onChange={(e) => setCategoriesFilter(e.target.value)}
               placeholder="Filter categories..."
-              className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs"
+              className="px-3 py-1.5 rounded-lg border border-[#EAEAEA] text-xs focus:outline-none focus:border-[#FF6154]"
             />
           </div>
 
           {categoriesLoading ? (
-            <p className="text-xs text-slate-500">Loading categories from Product Hunt MCP...</p>
+            <p className="text-xs text-[#777777]">Loading categories from Product Hunt MCP...</p>
           ) : categoriesData.items.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {categoriesData.items
@@ -1283,18 +1305,18 @@ export function ResearchView({
                       setQuery('');
                       setSubTab('search');
                     }}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-violet-50 hover:border-violet-200 text-xs font-medium text-[#0F172A] cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg border border-[#EAEAEA] bg-[#F7F7F7] hover:bg-[#FFF1F0] hover:border-[#FFD6D2] text-xs font-medium text-[#202020] cursor-pointer transition-colors"
                   >
-                    {c.name} <span className="text-slate-400 font-mono">({c.slug})</span>
+                    {c.name} <span className="text-[#777777] font-mono">({c.slug})</span>
                   </button>
                 ))}
             </div>
           ) : (
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 whitespace-pre-wrap max-h-96 overflow-y-auto">
+            <div className="p-4 rounded-xl bg-[#F7F7F7] border border-[#EAEAEA] text-xs text-[#444444] whitespace-pre-wrap max-h-96 overflow-y-auto">
               {categoriesData.summaryText || 'No categories retrieved.'}
             </div>
           )}
-        </div>
+        </PhCard>
       )}
     </div>
   );

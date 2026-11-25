@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import { ArrowLeft, CheckCircle2, Mail, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ExperienceLevel } from '../types';
+import { HuntPilotLogo, PhBanner } from '../components/ui/PhPrimitives';
 
 interface AuthPageProps {
   initialMode?: 'login' | 'signup' | 'forgot';
@@ -43,26 +45,32 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
   // Show verification prompt if user signed in via Email/Password and hasn't verified yet
   if (user && !user.emailVerified) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-6">
-        <div className="max-w-md w-full bg-white border border-slate-200 rounded-2xl p-8">
-          <div className="w-11 h-11 rounded-xl bg-violet-50 text-[#6D28D9] flex items-center justify-center mb-5">
+      <div className="min-h-screen bg-[#F7F7F7] flex flex-col justify-center items-center p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="max-w-md w-full bg-white border border-[#EAEAEA] rounded-2xl p-8"
+        >
+          <div className="w-11 h-11 rounded-xl bg-[#FFF1F0] border border-[#FFD6D2] text-[#FF6154] flex items-center justify-center mb-5">
             <Mail className="w-5 h-5" />
           </div>
-          <h1 className="text-xl font-bold text-[#0F172A] mb-2">Verify your email address</h1>
-          <p className="text-sm text-slate-600 leading-relaxed mb-6">
-            We sent a verification link to <span className="font-semibold text-[#0F172A]">{user.email}</span>.
-            Please open your inbox and verify your email to unlock your private HuntPilot AI workspace.
+          <h1 className="text-xl font-bold text-[#202020] mb-2">Verify your email address</h1>
+          <p className="text-sm text-[#555555] leading-relaxed mb-6">
+            We sent a verification link to{' '}
+            <span className="font-semibold text-[#202020]">{user.email}</span>. Please open your
+            inbox and verify your email to unlock your private HuntPilot AI workspace.
           </p>
 
           {notice && (
-            <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
+            <PhBanner tone="success" className="mb-4">
               {notice}
-            </div>
+            </PhBanner>
           )}
           {authError && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
+            <PhBanner tone="error" className="mb-4">
               {authError}
-            </div>
+            </PhBanner>
           )}
 
           <div className="space-y-3">
@@ -85,7 +93,7 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
                   setBusy(false);
                 }
               }}
-              className="w-full py-2.5 px-4 rounded-lg bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
+              className="w-full py-2.5 px-4 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
             >
               <RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} />
               I’ve Verified My Email — Continue
@@ -105,7 +113,7 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
                   setBusy(false);
                 }
               }}
-              className="w-full py-2.5 px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium transition-colors cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-lg border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-[#202020] text-sm font-medium transition-colors cursor-pointer"
             >
               Resend Verification Email
             </button>
@@ -113,12 +121,12 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
             <button
               type="button"
               onClick={signOutUser}
-              className="w-full py-2 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
+              className="w-full py-2 text-xs text-[#777777] hover:text-[#202020] cursor-pointer"
             >
               Sign out and use another account
             </button>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -157,28 +165,37 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-6">
+    <div className="min-h-screen bg-[#F7F7F7] flex flex-col justify-center items-center p-6">
       <div className="max-w-md w-full">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-[#0F172A] mb-6 cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#555555] hover:text-[#202020] mb-6 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to HuntPilot AI
         </button>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-8">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="bg-white border border-[#EAEAEA] rounded-2xl p-8"
+        >
           <div className="mb-6">
-            <p className="text-xs font-semibold text-[#6D28D9] mb-1">HuntPilot AI</p>
-            <h1 className="text-2xl font-bold text-[#0F172A]">
+            <div className="mb-3">
+              <HuntPilotLogo size="sm" />
+            </div>
+            <h1 className="text-2xl font-bold text-[#202020]">
               {mode === 'login' && 'Welcome back, founder'}
               {mode === 'signup' && 'Create your launch workspace'}
               {mode === 'forgot' && 'Reset your password'}
             </h1>
-            <p className="text-sm text-slate-600 mt-1">
-              {mode === 'login' && 'Sign in to access your projects, launch drafts, and readiness reports.'}
-              {mode === 'signup' && 'Free workspace for Launch Academy, AI drafting, and launch scoring.'}
+            <p className="text-sm text-[#777777] mt-1">
+              {mode === 'login' &&
+                'Sign in to access your projects, launch drafts, and readiness reports.'}
+              {mode === 'signup' &&
+                'Free workspace for Launch Academy, AI drafting, and launch scoring.'}
               {mode === 'forgot' && 'Enter your email and we will send you a password reset link.'}
             </p>
           </div>
@@ -189,7 +206,7 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
                 type="button"
                 disabled={busy}
                 onClick={handleGoogle}
-                className="w-full py-2.5 px-4 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-sm font-semibold text-[#0F172A] flex items-center justify-center gap-2.5 transition-colors cursor-pointer disabled:opacity-60"
+                className="w-full py-2.5 px-4 rounded-lg border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-sm font-semibold text-[#202020] flex items-center justify-center gap-2.5 transition-colors cursor-pointer disabled:opacity-60"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
                   <path
@@ -214,24 +231,24 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200" />
+                  <div className="w-full border-t border-[#EAEAEA]" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-3 text-slate-400">or continue with email</span>
+                  <span className="bg-white px-3 text-[#777777]">or continue with email</span>
                 </div>
               </div>
             </>
           )}
 
           {authError && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 leading-relaxed">
+            <PhBanner tone="error" className="mb-4">
               {authError}
-            </div>
+            </PhBanner>
           )}
 
           {notice && (
-            <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="mb-4 p-3 rounded-lg bg-[#F0FDF4] border border-[#BBF7D0] text-xs text-[#15803D] flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-[#16A34A]" />
               <span>{notice}</span>
             </div>
           )}
@@ -239,7 +256,7 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                <label className="block text-xs font-medium text-[#202020] mb-1.5">
                   Full Name
                 </label>
                 <input
@@ -249,13 +266,13 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Alex Rivera"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#EAEAEA] bg-white text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              <label className="block text-xs font-medium text-[#202020] mb-1.5">
                 Email Address
               </label>
               <input
@@ -265,19 +282,19 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="founder@company.com"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-[#EAEAEA] bg-white text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
               />
             </div>
 
             {mode !== 'forgot' && (
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-medium text-slate-700">Password</label>
+                  <label className="block text-xs font-medium text-[#202020]">Password</label>
                   {mode === 'login' && (
                     <button
                       type="button"
                       onClick={() => switchMode('forgot')}
-                      className="text-xs font-medium text-[#6D28D9] hover:underline cursor-pointer"
+                      className="text-xs font-semibold text-[#FF6154] hover:underline cursor-pointer"
                     >
                       Forgot password?
                     </button>
@@ -290,40 +307,40 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#EAEAEA] bg-white text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
                 />
               </div>
             )}
 
             {mode === 'signup' && (
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                <label className="block text-xs font-medium text-[#202020] mb-1.5">
                   Product Hunt Experience
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => setExperienceLevel('beginner')}
-                    className={`p-2.5 rounded-lg border text-left text-xs transition-colors cursor-pointer ${
+                    className={`p-3 rounded-lg border text-left text-xs transition-colors cursor-pointer ${
                       experienceLevel === 'beginner'
-                        ? 'border-[#6D28D9] bg-violet-50 text-[#0F172A]'
-                        : 'border-slate-200 bg-white text-slate-600'
+                        ? 'border-[#FF6154] bg-[#FFF1F0] text-[#202020]'
+                        : 'border-[#EAEAEA] bg-white text-[#555555] hover:bg-[#F7F7F7]'
                     }`}
                   >
-                    <p className="font-semibold">First-time maker</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Step-by-step guidance</p>
+                    <p className="font-semibold text-[#202020]">First-time maker</p>
+                    <p className="text-[11px] text-[#777777] mt-0.5">Step-by-step guidance</p>
                   </button>
                   <button
                     type="button"
                     onClick={() => setExperienceLevel('experienced')}
-                    className={`p-2.5 rounded-lg border text-left text-xs transition-colors cursor-pointer ${
+                    className={`p-3 rounded-lg border text-left text-xs transition-colors cursor-pointer ${
                       experienceLevel === 'experienced'
-                        ? 'border-[#6D28D9] bg-violet-50 text-[#0F172A]'
-                        : 'border-slate-200 bg-white text-slate-600'
+                        ? 'border-[#FF6154] bg-[#FFF1F0] text-[#202020]'
+                        : 'border-[#EAEAEA] bg-white text-[#555555] hover:bg-[#F7F7F7]'
                     }`}
                   >
-                    <p className="font-semibold">Experienced</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Optimize &amp; score drafts</p>
+                    <p className="font-semibold text-[#202020]">Experienced</p>
+                    <p className="text-[11px] text-[#777777] mt-0.5">Optimize &amp; score drafts</p>
                   </button>
                 </div>
               </div>
@@ -332,7 +349,7 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
             <button
               type="submit"
               disabled={busy}
-              className="w-full py-2.5 px-4 rounded-lg bg-[#0F172A] hover:bg-slate-800 text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60"
+              className="w-full py-2.5 px-4 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60"
             >
               {busy
                 ? 'Please wait...'
@@ -344,14 +361,14 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-slate-100 text-center text-xs text-slate-600">
+          <div className="mt-6 pt-5 border-t border-[#EAEAEA] text-center text-xs text-[#777777]">
             {mode === 'login' && (
               <>
                 New to HuntPilot AI?{' '}
                 <button
                   type="button"
                   onClick={() => switchMode('signup')}
-                  className="font-semibold text-[#6D28D9] hover:underline cursor-pointer"
+                  className="font-semibold text-[#FF6154] hover:underline cursor-pointer"
                 >
                   Create a free account
                 </button>
@@ -363,7 +380,7 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
                 <button
                   type="button"
                   onClick={() => switchMode('login')}
-                  className="font-semibold text-[#6D28D9] hover:underline cursor-pointer"
+                  className="font-semibold text-[#FF6154] hover:underline cursor-pointer"
                 >
                   Sign in
                 </button>
@@ -373,13 +390,13 @@ export function AuthPage({ initialMode = 'login', onBack }: AuthPageProps) {
               <button
                 type="button"
                 onClick={() => switchMode('login')}
-                className="font-semibold text-[#6D28D9] hover:underline cursor-pointer"
+                className="font-semibold text-[#FF6154] hover:underline cursor-pointer"
               >
                 Return to Sign In
               </button>
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

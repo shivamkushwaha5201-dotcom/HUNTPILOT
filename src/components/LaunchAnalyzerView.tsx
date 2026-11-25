@@ -29,6 +29,7 @@ import {
 } from '../types';
 import { authorizedFetch, formatTimestamp, isValidHttpUrl } from '../utils/validation';
 import { UseProductHuntMcpResult } from '../hooks/useProductHuntMcp';
+import { PhBanner, PhCard, PhVoteBox } from './ui/PhPrimitives';
 
 export interface PendingResearchImport {
   id?: string;
@@ -152,7 +153,7 @@ export function LaunchAnalyzerView({
   const [makerComment, setMakerComment] = useState('');
   const [visualAssetsNotes, setVisualAssetsNotes] = useState('');
   const [competitorNotes, setCompetitorNotes] = useState('');
-  const [launchChecklistNotes, setLaunchChecklistNotes] = useState('');
+  const [launchChecklistNotes] = useState('');
 
   // Official Product Hunt MCP Draft Import state
   const [phLaunches, setPhLaunches] = useState<McpLaunchSummary[]>([]);
@@ -422,36 +423,31 @@ export function LaunchAnalyzerView({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">AI Launch Analyzer</h1>
-        <p className="text-sm text-slate-600 mt-1">
+        <h1 className="text-2xl font-bold text-[#202020] tracking-tight">AI Launch Analyzer</h1>
+        <p className="text-sm text-[#777777] mt-1">
           Submit your full launch draft or import an eligible Product Hunt draft via MCP to receive an Estimated Launch Readiness Score grounded in real Product Hunt category and competitor data.
         </p>
       </div>
 
       {/* Mandatory Disclaimer Banner */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-        <Info className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-        <p className="text-xs sm:text-sm text-amber-950 leading-relaxed">
-          <span className="font-semibold">About the Estimated Launch Readiness Score:</span>{' '}
-          This score evaluates copy clarity, positioning, and preparation completeness. It is{' '}
-          <span className="font-semibold">not</span> the actual probability of getting featured on Product Hunt—featuring depends on Product Hunt’s internal systems, editorial decisions, daily competition, and community response.
-        </p>
-      </div>
+      <PhBanner tone="warning">
+        <span className="font-semibold">About the Estimated Launch Readiness Score:</span> This score
+        evaluates copy clarity, positioning, and preparation completeness. It is{' '}
+        <span className="font-semibold">not</span> the actual probability of getting featured on
+        Product Hunt—featuring depends on Product Hunt’s internal systems, editorial decisions,
+        daily competition, and community response.
+      </PhBanner>
 
-      {error && (
-        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <PhBanner tone="error">{error}</PhBanner>}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left: Submission Form */}
         <form
           onSubmit={handleAnalyze}
-          className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-6 space-y-4"
+          className="lg:col-span-5 bg-white border border-[#EAEAEA] rounded-xl p-6 space-y-4"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-bold text-[#0F172A]">Launch Draft Submission</h2>
+            <h2 className="text-base font-bold text-[#202020]">Launch Draft Submission</h2>
             <div className="flex flex-wrap items-center gap-2">
               {drafts.length > 0 && (
                 <select
@@ -459,7 +455,7 @@ export function LaunchAnalyzerView({
                   onChange={(e) => {
                     if (e.target.value) importDraft(e.target.value);
                   }}
-                  className="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-slate-50 text-[#0F172A] max-w-[160px]"
+                  className="text-xs border border-[#EAEAEA] rounded-lg px-2.5 py-1.5 bg-[#F7F7F7] text-[#202020] max-w-[160px]"
                 >
                   <option value="" disabled>
                     Import saved draft...
@@ -477,7 +473,7 @@ export function LaunchAnalyzerView({
                   value={importedMcpLaunchId}
                   onChange={(e) => handleImportPhLaunch(e.target.value)}
                   disabled={loadingPhLaunches}
-                  className="text-xs border border-orange-300 rounded-lg px-2.5 py-1.5 bg-orange-50 text-[#C2410C] max-w-[175px]"
+                  className="text-xs border border-[#FFD6D2] rounded-lg px-2.5 py-1.5 bg-[#FFF1F0] text-[#CC3D31] max-w-[175px]"
                 >
                   <option value="">Import PH draft (MCP)...</option>
                   {phLaunches.map((l) => (
@@ -495,7 +491,7 @@ export function LaunchAnalyzerView({
                     const brief = researchReports.find((r) => r.id === e.target.value);
                     if (brief) applyResearchBrief(brief);
                   }}
-                  className="text-xs border border-violet-300 rounded-lg px-2.5 py-1.5 bg-violet-50 text-[#6D28D9] max-w-[175px]"
+                  className="text-xs border border-[#EAEAEA] rounded-lg px-2.5 py-1.5 bg-[#F7F7F7] text-[#202020] max-w-[175px]"
                 >
                   <option value="" disabled>
                     Import competitor brief...
@@ -511,7 +507,7 @@ export function LaunchAnalyzerView({
           </div>
 
           {importedResearchLabel && (
-            <div className="p-2.5 rounded-lg bg-violet-50 border border-violet-200 text-xs text-[#6D28D9] flex items-center justify-between gap-2">
+            <div className="p-2.5 rounded-lg bg-[#FFF1F0] border border-[#FFD6D2] text-xs text-[#CC3D31] flex items-center justify-between gap-2">
               <span>Competitor brief linked: {importedResearchLabel}</span>
               <button
                 type="button"
@@ -524,7 +520,7 @@ export function LaunchAnalyzerView({
           )}
 
           {importedMcpLaunchId && (
-            <div className="p-2.5 rounded-lg bg-orange-50 border border-orange-200 text-xs text-[#C2410C] flex items-center justify-between gap-2">
+            <div className="p-2.5 rounded-lg bg-[#FFF1F0] border border-[#FFD6D2] text-xs text-[#CC3D31] flex items-center justify-between gap-2">
               <span>Imported from Product Hunt MCP ({importedMcpLaunchId})</span>
               <button
                 type="button"
@@ -538,7 +534,7 @@ export function LaunchAnalyzerView({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-xs font-medium text-[#202020] mb-1">
                 Product Name *
               </label>
               <input
@@ -547,11 +543,11 @@ export function LaunchAnalyzerView({
                 maxLength={120}
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-xs font-medium text-[#202020] mb-1">
                 Product Category *
               </label>
               <input
@@ -562,7 +558,7 @@ export function LaunchAnalyzerView({
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 placeholder="e.g., SaaS, Artificial Intelligence"
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
               />
               <datalist id="analyzer-category-options">
                 {CATEGORY_SUGGESTIONS.map((c) => (
@@ -573,22 +569,21 @@ export function LaunchAnalyzerView({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              Website URL
-            </label>
+            <label className="block text-xs font-medium text-[#202020] mb-1">Website URL</label>
             <input
               type="url"
               maxLength={300}
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder="https://..."
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              Tagline * <span className="text-slate-400 tabular-nums">({tagline.length}/60 rec.)</span>
+            <label className="block text-xs font-medium text-[#202020] mb-1">
+              Tagline *{' '}
+              <span className="text-[#777777] tabular-nums">({tagline.length}/60 rec.)</span>
             </label>
             <input
               type="text"
@@ -597,12 +592,12 @@ export function LaunchAnalyzerView({
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
               placeholder="Clear 1-line summary of what your product does"
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label className="block text-xs font-medium text-[#202020] mb-1">
               Product Description *
             </label>
             <textarea
@@ -612,12 +607,12 @@ export function LaunchAnalyzerView({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Paste your Product Hunt description..."
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label className="block text-xs font-medium text-[#202020] mb-1">
               First Maker Comment
             </label>
             <textarea
@@ -626,13 +621,13 @@ export function LaunchAnalyzerView({
               value={makerComment}
               onChange={(e) => setMakerComment(e.target.value)}
               placeholder="Paste your draft first maker comment..."
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-xs font-medium text-[#202020] mb-1">
                 Target Audience
               </label>
               <input
@@ -640,11 +635,11 @@ export function LaunchAnalyzerView({
                 maxLength={500}
                 value={targetAudience}
                 onChange={(e) => setTargetAudience(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-xs font-medium text-[#202020] mb-1">
                 Topics (comma-separated)
               </label>
               <input
@@ -652,13 +647,13 @@ export function LaunchAnalyzerView({
                 maxLength={200}
                 value={topicsText}
                 onChange={(e) => setTopicsText(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label className="block text-xs font-medium text-[#202020] mb-1">
               Unique Selling Proposition
             </label>
             <input
@@ -666,12 +661,12 @@ export function LaunchAnalyzerView({
               maxLength={800}
               value={usp}
               onChange={(e) => setUsp(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label className="block text-xs font-medium text-[#202020] mb-1">
               Visual Assets (Thumbnail, Gallery &amp; Video Plan)
             </label>
             <textarea
@@ -680,12 +675,12 @@ export function LaunchAnalyzerView({
               value={visualAssetsNotes}
               onChange={(e) => setVisualAssetsNotes(e.target.value)}
               placeholder="e.g., 240x240 logo, 5 slides showing dashboard & workflow, 60s Loom video"
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label className="block text-xs font-medium text-[#202020] mb-1">
               Competitor Differentiation &amp; Prep Notes
             </label>
             <textarea
@@ -694,22 +689,22 @@ export function LaunchAnalyzerView({
               value={competitorNotes}
               onChange={(e) => setCompetitorNotes(e.target.value)}
               placeholder="How do you stand out vs alternatives? Is your teaser page & community ready?"
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-[#EAEAEA] text-sm focus:outline-none focus:border-[#FF6154]"
             />
           </div>
 
           <button
             type="submit"
             disabled={analyzing}
-            className="w-full py-2.5 px-4 rounded-lg bg-[#EA580C] hover:bg-[#C2410C] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
+            className="w-full py-2.5 px-4 rounded-lg bg-[#FF6154] hover:bg-[#E54B3E] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
           >
             <Gauge className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
             {analyzing ? 'Evaluating Launch Draft...' : 'Run Launch Readiness Analysis'}
           </button>
 
           {reports.length > 0 && (
-            <div className="pt-4 border-t border-slate-200">
-              <p className="text-xs font-semibold text-slate-500 mb-2">
+            <div className="pt-4 border-t border-[#EAEAEA]">
+              <p className="text-xs font-semibold text-[#777777] mb-2">
                 Past Analysis Reports ({reports.length})
               </p>
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
@@ -721,8 +716,8 @@ export function LaunchAnalyzerView({
                       key={rep.id}
                       className={`px-3 py-2 rounded-lg border flex items-center justify-between gap-2 text-xs transition-colors ${
                         isActive
-                          ? 'border-[#6D28D9] bg-violet-50'
-                          : 'border-slate-200 bg-slate-50 hover:bg-violet-50/50'
+                          ? 'border-[#FF6154] bg-[#FFF1F0]'
+                          : 'border-[#EAEAEA] bg-[#F7F7F7] hover:bg-[#FFF1F0]/60'
                       }`}
                     >
                       <button
@@ -733,10 +728,10 @@ export function LaunchAnalyzerView({
                         }}
                         className="flex-1 text-left flex items-center justify-between gap-2 min-w-0 cursor-pointer"
                       >
-                        <span className="font-medium text-[#0F172A] truncate">
+                        <span className="font-semibold text-[#202020] truncate">
                           {rep.draftTitle} · {formatTimestamp(rep.createdAt)}
                         </span>
-                        <span className="font-mono font-bold text-[#6D28D9] tabular-nums shrink-0">
+                        <span className="font-mono font-bold text-[#FF6154] tabular-nums shrink-0">
                           {rep.overallScore}/100
                         </span>
                       </button>
@@ -744,7 +739,7 @@ export function LaunchAnalyzerView({
                         type="button"
                         onClick={() => handleDeleteReport(rep.id)}
                         title="Delete analysis report"
-                        className="p-1 text-slate-400 hover:text-red-600 rounded cursor-pointer shrink-0"
+                        className="p-1 text-[#777777] hover:text-[#DC2626] rounded cursor-pointer shrink-0"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -759,38 +754,41 @@ export function LaunchAnalyzerView({
         {/* Right: Report Output */}
         <div className="lg:col-span-7 space-y-5">
           {!currentResult ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-10 text-center">
-              <Sparkles className="w-9 h-9 text-[#EA580C] mx-auto mb-3" />
-              <h3 className="text-base font-bold text-[#0F172A] mb-1">
+            <PhCard padding="p-10" className="text-center">
+              <Sparkles className="w-9 h-9 text-[#FF6154] mx-auto mb-3" />
+              <h3 className="text-base font-bold text-[#202020] mb-1">
                 Submit a draft to see your readiness diagnostic
               </h3>
-              <p className="text-sm text-slate-600 max-w-md mx-auto">
+              <p className="text-sm text-[#555555] max-w-md mx-auto">
                 You will receive an Estimated Launch Readiness Score (0–100), 8 category scores, real Product Hunt category/competitor context via MCP, and concrete copy recommendations.
               </p>
-            </div>
+            </PhCard>
           ) : (
             <div className="space-y-5">
               {/* Score Header & Category Chart */}
-              <div className="bg-white border border-slate-200 rounded-xl p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
-                  <div>
-                    <p className="text-xs font-semibold text-[#6D28D9]">
-                      Estimated Launch Readiness Score (AI Evaluation — Not Featuring Probability)
-                    </p>
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-5xl font-bold text-[#0F172A] font-mono tabular-nums">
-                        {currentResult.overallScore}
-                      </span>
-                      <span className="text-base text-slate-400 font-mono tabular-nums">/ 100</span>
+              <PhCard>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#EAEAEA]">
+                  <div className="flex items-center gap-4">
+                    <PhVoteBox points={currentResult.overallScore} active />
+                    <div>
+                      <p className="text-xs font-semibold text-[#FF6154]">
+                        Estimated Launch Readiness Score (AI Evaluation — Not Featuring Probability)
+                      </p>
+                      <div className="flex items-baseline gap-2 mt-1">
+                        <span className="text-4xl font-bold text-[#202020] font-mono tabular-nums">
+                          {currentResult.overallScore}
+                        </span>
+                        <span className="text-sm text-[#777777] font-mono tabular-nums">/ 100</span>
+                      </div>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-600 max-w-md leading-relaxed">
+                  <p className="text-sm text-[#555555] max-w-md leading-relaxed">
                     {currentResult.summary}
                   </p>
                 </div>
 
                 <div className="pt-5">
-                  <p className="text-xs font-semibold text-slate-500 mb-3">
+                  <p className="text-xs font-semibold text-[#777777] mb-3">
                     Category Breakdown (0–100)
                   </p>
                   <div className="h-[260px] w-full">
@@ -800,76 +798,78 @@ export function LaunchAnalyzerView({
                         layout="vertical"
                         margin={{ top: 0, right: 20, left: 20, bottom: 0 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" horizontal={false} />
-                        <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748B' }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#EAEAEA" horizontal={false} />
+                        <XAxis
+                          type="number"
+                          domain={[0, 100]}
+                          tick={{ fontSize: 11, fill: '#777777' }}
+                        />
                         <YAxis
                           type="category"
                           dataKey="name"
                           width={125}
-                          tick={{ fontSize: 11, fill: '#0F172A' }}
+                          tick={{ fontSize: 11, fill: '#202020' }}
                         />
                         <Tooltip
                           contentStyle={{
                             borderRadius: '8px',
-                            border: '1px solid #E2E8F0',
+                            border: '1px solid #EAEAEA',
                             fontSize: '12px',
                           }}
                         />
-                        <Bar dataKey="score" name="Category Score" fill="#6D28D9" radius={[0, 6, 6, 0]} />
+                        <Bar
+                          dataKey="score"
+                          name="Category Score"
+                          fill="#FF6154"
+                          radius={[0, 6, 6, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
-              </div>
+              </PhCard>
 
               {/* Real Retrieved Data from Product Hunt MCP (Strictly Separated from AI Estimates) */}
               {(latestMcpResearchData || latestMcpErrorNote) && (
-                <div className="bg-white border border-emerald-200 rounded-xl p-5 space-y-4">
+                <div className="bg-white border border-[#BBF7D0] rounded-xl p-5 space-y-4">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-emerald-800 font-semibold text-sm">
+                    <div className="flex items-center gap-2 text-[#15803D] font-bold text-sm">
                       <Database className="w-4 h-4" />
                       <span>Real Data Retrieved from Product Hunt MCP</span>
                     </div>
-                    <span className="text-[11px] text-emerald-700 font-medium">
+                    <span className="text-[11px] text-[#16A34A] font-semibold">
                       Live Official Server
                     </span>
                   </div>
 
                   {latestMcpErrorNote && (
-                    <p className="text-xs text-amber-700">{latestMcpErrorNote}</p>
+                    <p className="text-xs text-[#D97706]">{latestMcpErrorNote}</p>
                   )}
 
                   {latestMcpResearchData && latestMcpResearchData.matchedCategories.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-slate-500 mb-1.5">
+                      <p className="text-xs font-semibold text-[#777777] mb-1.5">
                         Matching Official Product Hunt Categories
                       </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {latestMcpResearchData.matchedCategories.map((cat) => (
-                          <span
-                            key={cat}
-                            className="px-2.5 py-1 rounded-lg bg-slate-100 text-xs font-medium text-[#0F172A]"
-                          >
-                            {cat}
-                          </span>
-                        ))}
-                      </div>
+                      <p className="text-xs font-medium text-[#202020]">
+                        {latestMcpResearchData.matchedCategories.join(' · ')}
+                      </p>
                     </div>
                   )}
 
                   {latestMcpResearchData && latestMcpResearchData.relatedProducts.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-slate-500 mb-2">
+                      <p className="text-xs font-semibold text-[#777777] mb-2">
                         Similar / Nearby Products on Product Hunt
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {latestMcpResearchData.relatedProducts.map((prod, idx) => (
                           <div
                             key={`${prod.name}-${idx}`}
-                            className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 space-y-1 text-xs"
+                            className="p-3 rounded-lg border border-[#EAEAEA] bg-[#F7F7F7] space-y-1 text-xs"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-[#0F172A] truncate">
+                              <span className="font-bold text-[#202020] truncate">
                                 {prod.name}
                               </span>
                               {prod.url && (
@@ -877,18 +877,18 @@ export function LaunchAnalyzerView({
                                   href={prod.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[#6D28D9] shrink-0"
+                                  className="text-[#FF6154] shrink-0"
                                 >
                                   <ExternalLink className="w-3.5 h-3.5" />
                                 </a>
                               )}
                             </div>
-                            <p className="text-slate-600 line-clamp-2">{prod.tagline}</p>
-                            <div className="flex flex-wrap gap-2 text-[11px] text-slate-500 pt-0.5">
+                            <p className="text-[#555555] line-clamp-2">{prod.tagline}</p>
+                            <div className="flex flex-wrap gap-2 text-[11px] text-[#777777] pt-0.5">
                               {prod.pricing && <span>Pricing: {prod.pricing}</span>}
                               {prod.topLaunchPoints !== null &&
                                 prod.topLaunchPoints !== undefined && (
-                                  <span className="font-mono text-[#C2410C]">
+                                  <span className="font-mono font-semibold text-[#FF6154]">
                                     {prod.topLaunchPoints} pts
                                   </span>
                                 )}
@@ -906,74 +906,84 @@ export function LaunchAnalyzerView({
 
               {/* Strengths & Weaknesses */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="bg-white border border-slate-200 rounded-xl p-5">
-                  <div className="flex items-center gap-2 text-emerald-700 font-semibold text-sm mb-3">
+                <PhCard padding="p-5">
+                  <div className="flex items-center gap-2 text-[#16A34A] font-bold text-sm mb-3">
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Strengths</span>
                   </div>
-                  <ul className="space-y-2 text-xs sm:text-sm text-slate-700">
+                  <ul className="space-y-2 text-xs sm:text-sm text-[#444444]">
                     {currentResult.strengths.map((item, idx) => (
-                      <li key={idx} className="leading-relaxed">• {item}</li>
+                      <li key={idx} className="leading-relaxed">
+                        • {item}
+                      </li>
                     ))}
                   </ul>
-                </div>
+                </PhCard>
 
-                <div className="bg-white border border-slate-200 rounded-xl p-5">
-                  <div className="flex items-center gap-2 text-[#EA580C] font-semibold text-sm mb-3">
+                <PhCard padding="p-5">
+                  <div className="flex items-center gap-2 text-[#FF6154] font-bold text-sm mb-3">
                     <AlertCircle className="w-4 h-4" />
                     <span>Weaknesses</span>
                   </div>
-                  <ul className="space-y-2 text-xs sm:text-sm text-slate-700">
+                  <ul className="space-y-2 text-xs sm:text-sm text-[#444444]">
                     {currentResult.weaknesses.map((item, idx) => (
-                      <li key={idx} className="leading-relaxed">• {item}</li>
+                      <li key={idx} className="leading-relaxed">
+                        • {item}
+                      </li>
                     ))}
                   </ul>
-                </div>
+                </PhCard>
               </div>
 
               {/* Missing Info & Suggestions */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="bg-white border border-slate-200 rounded-xl p-5">
-                  <div className="flex items-center gap-2 text-[#0F172A] font-semibold text-sm mb-3">
-                    <Info className="w-4 h-4 text-amber-600" />
+                <PhCard padding="p-5">
+                  <div className="flex items-center gap-2 text-[#202020] font-bold text-sm mb-3">
+                    <Info className="w-4 h-4 text-[#D97706]" />
                     <span>Missing Information</span>
                   </div>
-                  <ul className="space-y-2 text-xs sm:text-sm text-slate-700">
+                  <ul className="space-y-2 text-xs sm:text-sm text-[#444444]">
                     {currentResult.missingInfo.length === 0 ? (
-                      <li className="text-slate-500">No critical fields missing.</li>
+                      <li className="text-[#777777]">No critical fields missing.</li>
                     ) : (
                       currentResult.missingInfo.map((item, idx) => (
-                        <li key={idx} className="leading-relaxed">• {item}</li>
+                        <li key={idx} className="leading-relaxed">
+                          • {item}
+                        </li>
                       ))
                     )}
                   </ul>
-                </div>
+                </PhCard>
 
-                <div className="bg-white border border-slate-200 rounded-xl p-5">
-                  <div className="flex items-center gap-2 text-[#6D28D9] font-semibold text-sm mb-3">
+                <PhCard padding="p-5">
+                  <div className="flex items-center gap-2 text-[#FF6154] font-bold text-sm mb-3">
                     <Lightbulb className="w-4 h-4" />
                     <span>Specific Improvement Suggestions</span>
                   </div>
-                  <ul className="space-y-2 text-xs sm:text-sm text-slate-700">
+                  <ul className="space-y-2 text-xs sm:text-sm text-[#444444]">
                     {currentResult.suggestions.map((item, idx) => (
-                      <li key={idx} className="leading-relaxed">• {item}</li>
+                      <li key={idx} className="leading-relaxed">
+                        • {item}
+                      </li>
                     ))}
                   </ul>
-                </div>
+                </PhCard>
               </div>
 
               {/* Recommended Next Steps */}
-              <div className="bg-white border border-slate-200 rounded-xl p-5">
-                <div className="flex items-center gap-2 text-[#0F172A] font-semibold text-sm mb-3">
-                  <ListChecks className="w-4 h-4 text-[#6D28D9]" />
+              <PhCard padding="p-5">
+                <div className="flex items-center gap-2 text-[#202020] font-bold text-sm mb-3">
+                  <ListChecks className="w-4 h-4 text-[#FF6154]" />
                   <span>Recommended Next Steps</span>
                 </div>
-                <ol className="space-y-2 text-xs sm:text-sm text-slate-700 list-decimal list-inside">
+                <ol className="space-y-2 text-xs sm:text-sm text-[#444444] list-decimal list-inside">
                   {currentResult.nextSteps.map((step, idx) => (
-                    <li key={idx} className="leading-relaxed">{step}</li>
+                    <li key={idx} className="leading-relaxed">
+                      {step}
+                    </li>
                   ))}
                 </ol>
-              </div>
+              </PhCard>
             </div>
           )}
         </div>

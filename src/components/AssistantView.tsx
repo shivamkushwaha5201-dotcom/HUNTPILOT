@@ -11,6 +11,7 @@ import {
 import { authorizedFetch } from '../utils/validation';
 import { UseProductHuntMcpResult } from '../hooks/useProductHuntMcp';
 import { ACADEMY_CHAPTERS } from '../data/academyData';
+import { PhBanner } from './ui/PhPrimitives';
 
 interface AssistantViewProps {
   projects: Project[];
@@ -174,10 +175,10 @@ export function AssistantView({
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
+          <h1 className="text-2xl font-bold text-[#202020] tracking-tight">
             HuntPilot Assistant
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-[#777777] mt-1">
             Your Product Hunt launch strategist—backed by live official Product Hunt MCP search, profiles, alternatives, and leaderboards.
           </p>
         </div>
@@ -186,7 +187,7 @@ export function AssistantView({
           <select
             value={contextKey}
             onChange={(e) => onSelectProject(e.target.value === 'general' ? '' : e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-medium text-[#0F172A]"
+            className="px-3 py-2 rounded-lg border border-[#EAEAEA] bg-white text-xs font-semibold text-[#202020] focus:outline-none focus:border-[#FF6154]"
           >
             <option value="general">General Launch Strategy</option>
             {projects.map((p) => (
@@ -200,7 +201,7 @@ export function AssistantView({
             <button
               type="button"
               onClick={() => onClearHistory(contextKey)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-medium text-slate-600 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#EAEAEA] bg-white hover:bg-[#F7F7F7] text-xs font-medium text-[#555555] hover:text-[#202020] cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Clear Chat
@@ -210,12 +211,12 @@ export function AssistantView({
       </div>
 
       {/* Active Project & Live MCP Context Notice */}
-      <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-600 flex flex-wrap items-center justify-between gap-2">
+      <div className="bg-white border border-[#EAEAEA] rounded-xl px-4 py-3 text-xs text-[#555555] flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="font-semibold text-[#0F172A]">Active Context:</span>
+          <span className="font-semibold text-[#202020]">Active Context:</span>
           {activeProject ? (
             <>
-              <span>{activeProject.name}</span>
+              <span className="font-medium text-[#202020]">{activeProject.name}</span>
               <span aria-hidden="true">·</span>
               <span>{activeProject.category}</span>
               {activeProject.tagline && (
@@ -226,26 +227,28 @@ export function AssistantView({
               )}
             </>
           ) : (
-            <span>General Product Hunt Guidance (select a project above to inject your product details)</span>
+            <span>
+              General Product Hunt Guidance (select a project above to inject your product details)
+            </span>
           )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] text-slate-500">
+          <span className="text-[11px] text-[#777777]">
             Workspace Context: {projectDrafts.length} drafts · {projectReports.length} reports ·{' '}
             {projectResearch.length} briefs · Academy {academyPct}%
           </span>
-          <span aria-hidden="true" className="text-slate-300">
+          <span aria-hidden="true" className="text-[#EAEAEA]">
             |
           </span>
           {mcp.mcpStatus?.serverReachable ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#16A34A]">
               <CheckCircle2 className="w-3.5 h-3.5" />
               Live Product Hunt Data Active
               {mcp.mcpStatus.accountConnected ? ' · Account Connected' : ' · Public Tools'}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#777777]">
               <PlugZap className="w-3.5 h-3.5" />
               MCP Tools Ready on Demand
             </span>
@@ -254,7 +257,7 @@ export function AssistantView({
             <button
               type="button"
               onClick={() => mcp.connectProductHunt()}
-              className="text-[11px] font-semibold text-[#EA580C] hover:underline cursor-pointer"
+              className="text-[11px] font-semibold text-[#FF6154] hover:underline cursor-pointer"
             >
               Connect Account for Drafts
             </button>
@@ -263,17 +266,17 @@ export function AssistantView({
       </div>
 
       {/* Chat Viewport */}
-      <div className="bg-white border border-slate-200 rounded-2xl flex flex-col h-[580px]">
+      <div className="bg-white border border-[#EAEAEA] rounded-2xl flex flex-col h-[580px]">
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {threadMessages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto">
-              <div className="w-11 h-11 rounded-xl bg-violet-50 text-[#6D28D9] flex items-center justify-center mb-4">
+              <div className="w-11 h-11 rounded-xl bg-[#FFF1F0] border border-[#FFD6D2] text-[#FF6154] flex items-center justify-center mb-4">
                 <MessageSquare className="w-5 h-5" />
               </div>
-              <h2 className="text-base font-bold text-[#0F172A] mb-1">
+              <h2 className="text-base font-bold text-[#202020] mb-1">
                 Ask HuntPilot Assistant anything about launching
               </h2>
-              <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+              <p className="text-xs text-[#777777] mb-6 leading-relaxed">
                 Ask about taglines, maker comments, launch timing, or request live Product Hunt leaderboards and competitor lookups.
               </p>
 
@@ -283,7 +286,7 @@ export function AssistantView({
                     key={prompt}
                     type="button"
                     onClick={() => sendMessage(prompt)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-violet-50 hover:border-violet-200 text-xs font-medium text-[#0F172A] transition-colors cursor-pointer"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#EAEAEA] bg-[#F7F7F7] hover:bg-[#FFF1F0] hover:border-[#FFD6D2] text-xs font-medium text-[#202020] transition-colors cursor-pointer"
                   >
                     {prompt}
                   </button>
@@ -302,12 +305,12 @@ export function AssistantView({
                     <div
                       className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
                         msg.role === 'user'
-                          ? 'bg-[#0F172A] text-white'
-                          : 'bg-slate-50 border border-slate-200 text-[#0F172A]'
+                          ? 'bg-[#FF6154] text-white'
+                          : 'bg-[#F7F7F7] border border-[#EAEAEA] text-[#202020]'
                       }`}
                     >
                       {usedTools && usedTools.length > 0 && (
-                        <div className="mb-2 pb-1.5 border-b border-slate-200 flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-[#6D28D9]">
+                        <div className="mb-2 pb-1.5 border-b border-[#EAEAEA] flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-[#FF6154]">
                           <Database className="w-3.5 h-3.5" />
                           <span>Live Product Hunt MCP: {usedTools.join(', ')}</span>
                         </div>
@@ -319,7 +322,7 @@ export function AssistantView({
               })}
               {sending && (
                 <div className="flex justify-start">
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs text-slate-500">
+                  <div className="bg-[#F7F7F7] border border-[#EAEAEA] rounded-2xl px-4 py-3 text-xs text-[#777777]">
                     HuntPilot Assistant is checking live Product Hunt data &amp; drafting a response...
                   </div>
                 </div>
@@ -330,8 +333,8 @@ export function AssistantView({
         </div>
 
         {error && (
-          <div className="mx-6 mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
-            {error}
+          <div className="mx-6 mb-3">
+            <PhBanner tone="error">{error}</PhBanner>
           </div>
         )}
 
@@ -340,7 +343,7 @@ export function AssistantView({
             e.preventDefault();
             sendMessage(input);
           }}
-          className="p-4 border-t border-slate-200 flex items-center gap-3"
+          className="p-4 border-t border-[#EAEAEA] flex items-center gap-3"
         >
           <input
             type="text"
@@ -348,12 +351,12 @@ export function AssistantView({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about taglines, today's leaderboard, alternatives, or your launch draft..."
-            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-[#EAEAEA] bg-white text-sm text-[#202020] focus:outline-none focus:border-[#FF6154]"
           />
           <button
             type="submit"
             disabled={sending || !input.trim()}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF6154] hover:bg-[#E54B3E] text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
             Send
