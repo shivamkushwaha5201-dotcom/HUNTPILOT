@@ -374,7 +374,19 @@ async function resolveOAuthClient(
     return cached;
   }
 
-  // Prefer Dynamic Client Registration (RFC 7591) when supported
+  // Prefer Client ID Metadata Document (CIMD) when supported by the auth server (stateless and robust across container restarts)
+  if (meta.client_id_metadata_document_supported) {
+    const cimdUrl = `${appBaseUrl.replace(/\/+$/, '')}/api/mcp/oauth/client-metadata.json`;
+    const entry: CachedRegisteredClient = {
+      clientId: cimdUrl,
+      registrationMethod: 'cimd',
+    };
+    registeredClientsByRedirect.set(redirectUri, entry);
+    persistOAuthStore();
+    return entry;
+  }
+
+  // Fall back to Dynamic Client Registration (RFC 7591) if CIMD is not supported
   if (meta.registration_endpoint) {
     try {
       const regRes = await fetch(meta.registration_endpoint, {
@@ -412,19 +424,8 @@ async function resolveOAuthClient(
         }
       }
     } catch {
-      // Fall back to Client ID Metadata Document if supported
+      // Ignore DCR failure if CIMD or env fallback is available
     }
-  }
-
-  if (meta.client_id_metadata_document_supported) {
-    const cimdUrl = `${appBaseUrl.replace(/\/+$/, '')}/api/mcp/oauth/client-metadata.json`;
-    const entry: CachedRegisteredClient = {
-      clientId: cimdUrl,
-      registrationMethod: 'cimd',
-    };
-    registeredClientsByRedirect.set(redirectUri, entry);
-    persistOAuthStore();
-    return entry;
   }
 
   throw new Error(
